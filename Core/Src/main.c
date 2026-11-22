@@ -31,6 +31,8 @@
 #include "My_Tim.h"
 #include "BMI088driver.h"
 #include "Power_Contral.h"
+#include "bsp_fdcan.h"
+#include "Buzzer.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -106,12 +108,17 @@ int main(void)
   MX_UART7_Init();
   MX_USART10_UART_Init();
   MX_TIM14_Init();
+  MX_TIM12_Init();
   /* USER CODE BEGIN 2 */
+  bsp_can_init(&hfdcan1);
+  bsp_can_init(&hfdcan2);
+  bsp_can_init(&hfdcan3);
   BMI088_init();    // 初始化 BMI088 传感器
   IMU_Init();       // IMU 初始化（零偏+温度标定 + 四元数初始化）
   My_Tim_Init();    // 启动 1ms 定时器
   Serial_Init();    // 初始化串口（打印调试用）
   Power_Contral(ALL);
+  Buzzer_Init();    // 初始化蜂鸣器（默认静音）
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -121,6 +128,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
     Serial_Print_Euler(&imu.angle);
     HAL_Delay(100);
   }

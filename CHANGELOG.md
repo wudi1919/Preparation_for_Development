@@ -10,6 +10,10 @@
 - 移植底盘控制代码（PID_Calculator、MecSolve、Serial、Power_Contral 等）
 - 陀螺仪零偏标定 + 温度补偿（IMU_Gyro_Calibrate / IMU_Gyro_Compensate，缓解 yaw 漂移）
 - 重构：把 IMU 初始化/标定/补偿统一移到 imu_quaternion 模块，新增 IMU_Init() 在 main 调用
+- FDCAN：bsp_can_init/can_filter_init 改为带 FDCAN_HandleTypeDef* 形参，接收改 watermark 中断，缓冲区 8→64 字节
+- 新增蜂鸣器驱动（Buzzer，TIM12 PWM）+ 非阻塞 Beep
+- 新增非阻塞延时（bsp_delay / Delay_NonBlock）
+- 目录调整：MecSolve → Chassis_Solve，HW_Config → Hardware
 
 ### 关键修复
 - **SPI2 CLKPolarity 必须 High**（CubeMX 默认 Low，会导致 BMI088 读到乱码/全 0）

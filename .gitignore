@@ -8,6 +8,7 @@ build/
 .idea/
 .vscode/
 *.swp
+*~
 
 # 系统文件
 Thumbs.db

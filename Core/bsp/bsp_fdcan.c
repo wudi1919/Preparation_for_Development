@@ -7,15 +7,11 @@
 * @details:    	CAN 使能
 ************************************************************************
 **/
-void bsp_can_init(void)
+void bsp_can_init(FDCAN_HandleTypeDef *hfdcan)
 {
-	can_filter_init();
-	HAL_FDCAN_Start(&hfdcan1);                               //开启FDCAN
-	HAL_FDCAN_Start(&hfdcan2);
-	HAL_FDCAN_Start(&hfdcan3);
-	HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
-	HAL_FDCAN_ActivateNotification(&hfdcan2, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
-	HAL_FDCAN_ActivateNotification(&hfdcan3, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
+	can_filter_init(hfdcan);
+	HAL_FDCAN_Start(hfdcan);                               //开启FDCAN
+	HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO0_WATERMARK, 0);
 }
 /**
 ************************************************************************
@@ -25,7 +21,7 @@ void bsp_can_init(void)
 * @details:    	CAN滤波器初始化
 ************************************************************************
 **/
-void can_filter_init(void)
+void can_filter_init(FDCAN_HandleTypeDef *hfdcan)
 {
 	FDCAN_FilterTypeDef fdcan_filter;
 	
@@ -36,12 +32,12 @@ void can_filter_init(void)
 	fdcan_filter.FilterID1 = 0x00;                               
 	fdcan_filter.FilterID2 = 0x00;
 
-	HAL_FDCAN_ConfigFilter(&hfdcan1,&fdcan_filter); 		 				  //接收ID2
+	HAL_FDCAN_ConfigFilter(hfdcan,&fdcan_filter); 		 				  //接收ID2
 	//拒绝接收匹配不成功的标准ID和扩展ID,不接受远程帧
-	HAL_FDCAN_ConfigGlobalFilter(&hfdcan1,FDCAN_REJECT,FDCAN_REJECT,FDCAN_REJECT_REMOTE,FDCAN_REJECT_REMOTE);
-	HAL_FDCAN_ConfigFifoWatermark(&hfdcan1, FDCAN_CFG_RX_FIFO0, 1);
-//	HAL_FDCAN_ConfigFifoWatermark(&hfdcan1, FDCAN_CFG_RX_FIFO1, 1);
-//	HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_TX_COMPLETE, FDCAN_TX_BUFFER0);
+	HAL_FDCAN_ConfigGlobalFilter(hfdcan,FDCAN_REJECT,FDCAN_REJECT,FDCAN_REJECT_REMOTE,FDCAN_REJECT_REMOTE);
+	HAL_FDCAN_ConfigFifoWatermark(hfdcan, FDCAN_CFG_RX_FIFO0, 1);
+//	HAL_FDCAN_ConfigFifoWatermark(hfdcan, FDCAN_CFG_RX_FIFO1, 1);
+//	HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_TX_COMPLETE, FDCAN_TX_BUFFER0);
 }
 /**
 ************************************************************************
@@ -107,19 +103,19 @@ uint8_t fdcanx_receive(hcan_t *hfdcan, uint16_t *rec_id, uint8_t *buf)
 		*rec_id = pRxHeader.Identifier;
 		if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_8)
 			len = pRxHeader.DataLength;
-		if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_12)
+		else if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_12)
 			len = 12;
-		if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_16)
+		else if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_16)
 			len = 16;
-		if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_20)
+		else if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_20)
 			len = 20;
-		if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_24)
+		else if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_24)
 			len = 24;
-		if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_32)
+		else if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_32)
 			len = 32;
-		if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_48)
+		else if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_48)
 			len = 48;
-		if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_64)
+		else if(pRxHeader.DataLength<=FDCAN_DLC_BYTES_64)
 			len = 64;
 		
 		return len;//接收数据
@@ -129,22 +125,25 @@ uint8_t fdcanx_receive(hcan_t *hfdcan, uint16_t *rec_id, uint8_t *buf)
 
 
 
-uint8_t rx_data1[8] = {0};
+uint8_t rx_data1[64] = {0};
 uint16_t rec_id1;
 void fdcan1_rx_callback(void)
 {
+	
 	fdcanx_receive(&hfdcan1, &rec_id1, rx_data1);
 }
-uint8_t rx_data2[8] = {0};
+uint8_t rx_data2[64] = {0};
 uint16_t rec_id2;
 void fdcan2_rx_callback(void)
 {
+
 	fdcanx_receive(&hfdcan2, &rec_id2, rx_data2);
 }
-uint8_t rx_data3[8] = {0};
+uint8_t rx_data3[64] = {0};
 uint16_t rec_id3;
 void fdcan3_rx_callback(void)
 {
+
 	fdcanx_receive(&hfdcan3, &rec_id3, rx_data3);
 }
 

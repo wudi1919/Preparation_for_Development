@@ -37,7 +37,11 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/Hardware/Power_contral.h
         Core/bsp/My_Tim.c
         Core/bsp/My_Tim.h
-        Core/Hardware/HW_Config.h)
+        Core/Hardware/HW_Config.h
+        Core/Hardware/Motor_Contral.c
+        Core/Hardware/Motor_Contral.h
+        Core/Hardware/Buzzer.h
+)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
