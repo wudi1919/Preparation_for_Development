@@ -16,9 +16,5 @@
  *   3. 在 HAL_TIM_PeriodElapsedCallback() 里加对应的 if 分支。
  */
 void My_Tim_Init(void);
-void IMU_Gyro_Calibrate(int samples);   // 上电静止标定：陀螺仪零偏 + 参考温度
-
-/* IMU 姿态解算结果（在 My_Tim.c 里定义，其它模块可读） */
-extern IMU_Attitude_t imu;
 
 #endif //H7_PREPARED_DEVELOPMENT_MY_TIM_H

@@ -1,5 +1,6 @@
 #include "imu_quaternion.h"
 #include <math.h>
+#include "BMI088driver.h"
 
 /* 采样频率（Hz）：必须与调用 IMU_Quat_Update 的实际周期一致。
  * 当前在 100ms（10Hz）分支里调用，所以填 10.0f */
@@ -12,6 +13,58 @@
 static float integralFBx = 0.0f;
 static float integralFBy = 0.0f;
 static float integralFBz = 0.0f;
+
+/* ==================== 陀螺仪零偏 + 温度补偿 ==================== */
+
+/* 全局 IMU 姿态数据（四元数 + 欧拉角） */
+IMU_Attitude_t imu = {0};
+
+static float gyro_bias[3] = {0.0f};    // 静止时测得的零偏 (rad/s)
+static float calib_temp = 0.0f;        // 标定时的温度 (°C)
+
+/* 温度系数：陀螺仪零偏随温度的变化率 (rad/s 每 °C)
+ * BMI088 典型约 0.015 °/s/K，换算成 rad/s/°C 约 2.6e-4 */
+#define GYRO_TEMP_COEF  (0.015f * 0.017453293f)
+
+/* 上电静止时调用：采集 N 个样本取平均，得到零偏和参考温度 */
+void IMU_Gyro_Calibrate(int samples)
+{
+    float gyro[3], accel[3], temp;
+    float sum[3] = {0.0f};
+    float tsum = 0.0f;
+
+    for (int i = 0; i < samples; i++)
+    {
+        BMI088_read(gyro, accel, &temp);
+        sum[0] += gyro[0];
+        sum[1] += gyro[1];
+        sum[2] += gyro[2];
+        tsum += temp;
+        HAL_Delay(1);
+    }
+
+    gyro_bias[0] = sum[0] / samples;
+    gyro_bias[1] = sum[1] / samples;
+    gyro_bias[2] = sum[2] / samples;
+    calib_temp   = tsum / samples;
+}
+
+/* 应用零偏 + 温度漂移补偿 */
+void IMU_Gyro_Compensate(float gyro[3], float temp)
+{
+    float dt = temp - calib_temp;
+
+    gyro[0] -= gyro_bias[0] + GYRO_TEMP_COEF * dt;
+    gyro[1] -= gyro_bias[1] + GYRO_TEMP_COEF * dt;
+    gyro[2] -= gyro_bias[2] + GYRO_TEMP_COEF * dt;
+}
+
+/* IMU 初始化：零偏+温度标定 + 四元数初始化 */
+void IMU_Init(void)
+{
+    IMU_Gyro_Calibrate(500);
+    IMU_Quat_Init(&imu.quat);
+}
 
 void IMU_Quat_Init(Quaternion_t *q)
 {

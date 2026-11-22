@@ -108,7 +108,8 @@ int main(void)
   MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
   BMI088_init();    // 初始化 BMI088 传感器
-  My_Tim_Init();    // 启动 1ms 定时器 + 四元数初始化
+  IMU_Init();       // IMU 初始化（零偏+温度标定 + 四元数初始化）
+  My_Tim_Init();    // 启动 1ms 定时器
   Serial_Init();    // 初始化串口（打印调试用）
   Power_Contral(ALL);
   /* USER CODE END 2 */

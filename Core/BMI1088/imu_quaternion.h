@@ -41,6 +41,18 @@ void IMU_Quat_Update(Quaternion_t *q, float gx, float gy, float gz,
 /* 四元数转欧拉角（rad） */
 void IMU_Quat_ToEuler(const Quaternion_t *q, EulerAngle_t *e);
 
+/* 全局 IMU 姿态数据（四元数 + 欧拉角） */
+extern IMU_Attitude_t imu;
+
+/* IMU 初始化：上电静止标定（零偏+参考温度）+ 四元数初始化 */
+void IMU_Init(void);
+
+/* 陀螺仪零偏 + 温度标定（需板子静止） */
+void IMU_Gyro_Calibrate(int samples);
+
+/* 应用零偏 + 温度补偿 */
+void IMU_Gyro_Compensate(float gyro[3], float temp);
+
 #ifdef __cplusplus
 }
 #endif
