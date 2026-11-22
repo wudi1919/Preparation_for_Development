@@ -1,0 +1,14 @@
+# 编译产物
+build/
+
+# Claude 临时脚本/文件
+.claude/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 系统文件
+Thumbs.db
+.DS_Store
