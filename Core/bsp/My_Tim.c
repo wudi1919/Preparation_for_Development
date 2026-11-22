@@ -41,10 +41,4 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             IMU_Quat_ToEuler(&imu.quat, &imu.angle);
         }
     }
-    /* 以后加更多定时器：
-     * else if (htim->Instance == TIM2)
-     * {
-     *     // TIM2 的周期任务
-     * }
-     */
 }

@@ -3,7 +3,7 @@
 //
 
 #include "MecSolve.h"
-#include "HW_Config.h"
+#include "../bsp/HW_Config.h"
 
 /* omega为正=逆时针ccw，负=顺时针cw。Vx/Vy: m/s，omega: rad/s；输出各轮目标转速 RPM（与 Actual 同单位）\
  * 这里只做底盘的运算所以写死固定的电机

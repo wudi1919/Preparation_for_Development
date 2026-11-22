@@ -10,6 +10,7 @@
 - 移植底盘控制代码（PID_Calculator、MecSolve、Serial、Power_Contral 等）
 - 陀螺仪零偏标定 + 温度补偿（IMU_Gyro_Calibrate / IMU_Gyro_Compensate，缓解 yaw 漂移）
 - 重构：把 IMU 初始化/标定/补偿统一移到 imu_quaternion 模块，新增 IMU_Init() 在 main 调用
+- HW_Config.h 改为 DJI 电机 CAN 标识符（M3508：电流控制帧 0x200，反馈帧 0x201~0x204）
 
 ### 关键修复
 - **SPI2 CLKPolarity 必须 High**（CubeMX 默认 Low，会导致 BMI088 读到乱码/全 0）

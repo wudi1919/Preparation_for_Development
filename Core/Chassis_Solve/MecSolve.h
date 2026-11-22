@@ -4,7 +4,7 @@
 
 #ifndef BLUETOOTH_MACCAR1_0_MECSOLVE_H
 #define BLUETOOTH_MACCAR1_0_MECSOLVE_H
-#include "HW_Config.h"
+#include "../bsp/HW_Config.h"
 
 #define RAD_S_TO_RPM (60.0f / 6.283185307f)   // 1 rad/s = 60/(2π) ≈ 9.549 RPM
 
