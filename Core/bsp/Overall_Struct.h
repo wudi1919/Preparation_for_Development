@@ -4,6 +4,7 @@
 
 #ifndef BLUETOOTH_MACCAR1_0_OVERALL_STRUCT_H
 #define BLUETOOTH_MACCAR1_0_OVERALL_STRUCT_H
+#include "stm32h7xx.h"
 
 typedef struct {
     float Actual;     // 实际转速 RPM（带符号，可正可负）
@@ -18,5 +19,23 @@ typedef struct {
     float Kd;
     float Out;        // PID 输出（±OutMax，即 ±100 占空比 %）
 } PID_Data;
+
+typedef enum {
+    GM6020,
+    C610,
+    C620
+}Mo_type;
+
+typedef struct {
+    
+    Mo_type type;
+    uint16_t Target_Angel_Direction;
+    uint16_t Actual_Angle_Direction;
+    uint16_t Target_Speed;
+    uint16_t Actual_Speed;
+    HAL_StatusTypeDef Work_Status;
+
+}Mo_Sta_typ;
+
 
 #endif //BLUETOOTH_MACCAR1_0_OVERALL_STRUCT_H

@@ -50,4 +50,5 @@ void PID_config(PID_Data * p, float kp, float ki, float kd, float OutMax, float 
     p->Ki     = ki;
     p->Kd     = kd;
     p->OutMax = OutMax;
-    p->IntMax = IntMax;}
+    p->IntMax = IntMax;
+}

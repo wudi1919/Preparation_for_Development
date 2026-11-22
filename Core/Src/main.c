@@ -119,6 +119,9 @@ int main(void)
   Serial_Init();    // 初始化串口（打印调试用）
   Power_Contral(ALL);
   Buzzer_Init();    // 初始化蜂鸣器（默认静音）
+
+  uint8_t a[8] ={0x0f,0x0B,0x00,0x00,0x00,0x00,0x00,0x00};   // motor1 = 3000
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -128,9 +131,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
+    fdcanx_send_data(&hfdcan1,0x1FE, a,8);
+    //Buzzer_Beep(100);
     Serial_Print_Euler(&imu.angle);
-    HAL_Delay(100);
   }
   /* USER CODE END 3 */
 }

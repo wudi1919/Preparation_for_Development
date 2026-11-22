@@ -28,16 +28,7 @@ void Buzzer_Off(void)
 void Buzzer_Beep(uint16_t ms)
 {
     Buzzer_On();
-    beep_tick = HAL_GetTick();   // 记录开始时间
-    beep_ms   = ms;
-    beeping   = 1;
+    Delay_ms(ms);
+    Buzzer_Off();
 }
 
-void Buzzer_Process(void)
-{
-    if (beeping && Delay_NonBlock(&beep_tick, beep_ms))
-    {
-        Buzzer_Off();
-        beeping = 0;
-    }
-}

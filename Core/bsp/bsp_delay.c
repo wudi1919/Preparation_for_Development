@@ -4,14 +4,13 @@
 
 #include "bsp_delay.h"
 
-uint8_t Delay_NonBlock(uint32_t *last_tick, uint32_t ms)
+void Delay_ms(uint32_t ms)
 {
-    uint32_t now = HAL_GetTick();
+    int a;
+    uint32_t start = HAL_GetTick();
 
-    if ((now - *last_tick) >= ms)
+    while ((HAL_GetTick() - start) < ms)
     {
-        *last_tick = now;
-        return 1;   // 到时间了
+        a++;// 忙等，直到 ms 毫秒过去
     }
-    return 0;       // 还没到
 }
