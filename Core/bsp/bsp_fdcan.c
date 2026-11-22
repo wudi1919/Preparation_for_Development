@@ -1,5 +1,4 @@
 #include "bsp_fdcan.h"
-#include "bsp_delay.h"
 
 /**
  * @brief   CAN 外设初始化（配置滤波器、启动并激活中断）
@@ -109,8 +108,6 @@ void bsp_fdcan_set_baud(hcan_t *hfdcan, uint8_t mode, uint8_t baud)
     hfdcan->Init.DataSyncJumpWidth    = dat_sjw;
 
     HAL_FDCAN_Init(hfdcan);
-    Delay_ms(1);
-    can_filter_init(hfdcan);//每次切换can的fd与标准模式之后都需要重新配置这里是必须的
 }
 
 /**
@@ -125,6 +122,7 @@ void bsp_can_switch(hcan_t *hfdcan, uint8_t mode, uint8_t baud)
 {
     bsp_fdcan_set_baud(hfdcan, mode, baud);   // DeInit + 配时序 + Init + 滤波器
     bsp_can_init(hfdcan);                     // 滤波器 + Start + 使能中断
+    //此处涉及到fdcan外设的底层此处必须这样封装不能将bsp_can_init(hfdcan); 封装在 bsp_fdcan_set_baud(hfdcan, mode, baud);内部
 }
 
 /**
@@ -185,6 +183,13 @@ uint8_t fdcanx_send_data(hcan_t *hfdcan, uint16_t id, uint8_t *data, uint32_t le
     if (HAL_FDCAN_AddMessageToTxFifoQ(hfdcan, &pTxHeader, data) != HAL_OK)
         return 1;   // 队列满或参数错误
     return 0;
+}
+
+//该函数不会更改回原先的can模式使用时请注意
+void can_fdcan_sentdat(hcan_t *hfdcan,uint8_t mode, uint8_t baud,uint16_t id, uint8_t *data, uint32_t len) {
+
+    bsp_can_switch(hfdcan,mode,baud);
+    fdcanx_send_data(hfdcan,id,data,len);
 }
 
 /**
@@ -258,6 +263,11 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
     if (hfdcan == &hfdcan3)
         fdcan3_rx_callback();
 }
+
+
+
+
+
 
 /**
  * @brief   FDCAN 错误状态回调（总线关闭、错误被动、错误警告等）

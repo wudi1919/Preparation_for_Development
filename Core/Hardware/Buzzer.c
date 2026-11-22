@@ -30,5 +30,13 @@ void Buzzer_Beep(uint16_t ms)
     Buzzer_On();
     Delay_ms(ms);
     Buzzer_Off();
+    Delay_ms(ms);
+}
+
+void Buzzer_Beep_multiple(uint16_t Interval_time, uint16_t times) {
+    for (uint16_t i = 0; i < times; i++) {
+        Buzzer_Beep(Interval_time);
+    }
+    Delay_ms(Interval_time*10);
 }
 
