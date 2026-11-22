@@ -110,6 +110,10 @@ int main(void)
   MX_TIM14_Init();
   MX_TIM12_Init();
   /* USER CODE BEGIN 2 */
+  /* 启动时把所有 FDCAN 切换到标准 CAN（经典模式，1Mbps） */
+  bsp_fdcan_set_baud(&hfdcan1, CAN_CLASS, CAN_BR_1M);
+  bsp_fdcan_set_baud(&hfdcan2, CAN_CLASS, CAN_BR_1M);
+  bsp_fdcan_set_baud(&hfdcan3, CAN_CLASS, CAN_BR_1M);
   bsp_can_init(&hfdcan1);
   bsp_can_init(&hfdcan2);
   bsp_can_init(&hfdcan3);

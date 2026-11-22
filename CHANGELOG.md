@@ -14,6 +14,7 @@
 - 新增蜂鸣器驱动（Buzzer，TIM12 PWM）+ 非阻塞 Beep
 - 新增非阻塞延时（bsp_delay / Delay_NonBlock）
 - 目录调整：MecSolve → Chassis_Solve，HW_Config → Hardware
+- FDCAN：新增运行时标准 CAN ↔ CAN FD 切换（`bsp_fdcan_set_baud` + 模式/波特率宏 + `fdcanx_send_data` 按 `FrameFormat` 自适应帧格式 + 总线关闭恢复回调）；main 启动时把三个 FDCAN 口统一切换为标准 CAN（经典模式 1Mbps）；bsp_fdcan.c 转码为 UTF-8
 
 ### 关键修复
 - **SPI2 CLKPolarity 必须 High**（CubeMX 默认 Low，会导致 BMI088 读到乱码/全 0）
