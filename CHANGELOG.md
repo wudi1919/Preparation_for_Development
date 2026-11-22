@@ -8,6 +8,7 @@
 - 串口打印欧拉角（UART7, 115200, FireWater 格式）
 - 开启 `-u _printf_float` 支持浮点打印
 - 移植底盘控制代码（PID_Calculator、MecSolve、Serial、Power_Contral 等）
+- 陀螺仪零偏标定 + 温度补偿（IMU_Gyro_Calibrate / Gyro_Compensate，缓解 yaw 漂移）
 
 ### 关键修复
 - **SPI2 CLKPolarity 必须 High**（CubeMX 默认 Low，会导致 BMI088 读到乱码/全 0）
