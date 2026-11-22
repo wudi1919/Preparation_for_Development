@@ -15,6 +15,7 @@
 - 新增非阻塞延时（bsp_delay / Delay_NonBlock）
 - 目录调整：MecSolve → Chassis_Solve，HW_Config → Hardware
 - FDCAN：新增运行时标准 CAN ↔ CAN FD 切换（`bsp_fdcan_set_baud` + 模式/波特率宏 + `fdcanx_send_data` 按 `FrameFormat` 自适应帧格式 + 总线关闭恢复回调）；main 启动时把三个 FDCAN 口统一切换为标准 CAN（经典模式 1Mbps）；bsp_fdcan.c 转码为 UTF-8
+- FDCAN：新增 `bsp_can_switch()` 一步完成「切换 + 启动」，main 启动改为调用它；`set_baud` 内部补 `Delay_ms(1)` + `can_filter_init` 保证切换后滤波器可靠生效
 
 ### 关键修复
 - **SPI2 CLKPolarity 必须 High**（CubeMX 默认 Low，会导致 BMI088 读到乱码/全 0）
