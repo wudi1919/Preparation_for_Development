@@ -17,6 +17,7 @@
 - FDCAN：新增运行时标准 CAN ↔ CAN FD 切换（`bsp_fdcan_set_baud` + 模式/波特率宏 + `fdcanx_send_data` 按 `FrameFormat` 自适应帧格式 + 总线关闭恢复回调）；main 启动时把三个 FDCAN 口统一切换为标准 CAN（经典模式 1Mbps）；bsp_fdcan.c 转码为 UTF-8
 - FDCAN：新增 `bsp_can_switch()` 一步完成「切换 + 启动」，main 启动改为调用它；`set_baud` 内部补 `Delay_ms(1)` + `can_filter_init` 保证切换后滤波器可靠生效
 - CAN 数据处理：实现 `can_data_processing()`（Can_Fifo_Data_Processing.c），解析电机反馈帧的转速（byte2~3，int16 RPM）写入 `Mo_GM6020/Mo_C610/Mo_C620[通道][电机号].Actual`；电机类型按通道区分（1=GM6020，2=C610，3=C620）
+- 电机结构体：新增 `Mo_PID_Data`（含 `Mo_Angel` + `Mo_Speed` 两个 PID_Data），电机数组改用 `Mo_PID_Data`；`can_data_processing` 改为角度→`Mo_Angel.Actual`、转速→`Mo_Speed.Actual`
 
 ### 关键修复
 - **SPI2 CLKPolarity 必须 High**（CubeMX 默认 Low，会导致 BMI088 读到乱码/全 0）
