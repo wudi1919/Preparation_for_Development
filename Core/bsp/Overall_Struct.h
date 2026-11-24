@@ -20,6 +20,12 @@ typedef struct {
     float Out;        // PID 输出（±OutMax，即 ±100 占空比 %）
 } PID_Data;
 
+/* 每个电机挂两个 PID：角度环 + 速度环 */
+typedef struct {
+    PID_Data Mo_Angel;   // 角度环 PID
+    PID_Data Mo_Speed;   // 速度环 PID
+} Mo_PID_Data;
+
 typedef enum {
     GM6020,
     C610,

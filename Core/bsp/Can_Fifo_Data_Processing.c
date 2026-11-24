@@ -14,6 +14,7 @@ extern uint8_t  rx_data1[64], rx_data2[64], rx_data3[64];
 extern Mo_PID_Data Mo_GM6020[3][7];
 extern Mo_PID_Data Mo_C610[3][7];
 extern Mo_PID_Data Mo_C620[3][7];
+extern Mo_PID_Data Mo_Demo;
 
 /**
  * @brief  处理某一路 CAN 的电机反馈，把角度/转速写入对应电机结构体的 PID 变量
@@ -71,4 +72,24 @@ void can_data_processing(uint8_t can_ch)
         default:
             break;
     }
+}
+
+
+/**
+ * @brief  Demo：只分析 GM6020 的反馈帧（固定用通道 1 = GM6020）
+ * @note   GM6020 反馈 ID = GM6020_CALLBACK(0x204) + 电机号(1~7)，即 0x205~0x20B。
+ *         帧格式（大端）：byte0~1 机械角(0~8191)，byte2~3 转速(RPM，有符号)，
+ *         byte4~5 实际转矩电流，byte6 温度，byte7 保留。
+ *         这里只把角度写进 Mo_Angel.Actual、转速写进 Mo_Speed.Actual。
+ */
+void can_data_processing_Demo(void) {
+    uint16_t id   = rec_id1;                     /* 通道 1 最近一帧的反馈 ID */
+    uint8_t *data = rx_data1;                    /* 通道 1 最近一帧的反馈数据 */
+    uint8_t idx;
+
+    /* 只认 GM6020 的反馈 ID 范围 */
+    if (id < GM6020_CALLBACK + 1 || id > GM6020_CALLBACK + 7)
+        return;
+    Mo_Demo.Mo_Angel.Actual = (uint16_t)((data[0] << 8) | data[1]);  /* 机械角 0~8191 */
+    Mo_Demo.Mo_Speed.Actual = (int16_t)((data[2] << 8) | data[3]);   /* 转速 RPM（有符号） */
 }

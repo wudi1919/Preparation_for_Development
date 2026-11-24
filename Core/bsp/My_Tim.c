@@ -4,7 +4,7 @@
 
 #include "My_Tim.h"
 #include "BMI088driver.h"
-
+#include "Motor_Contral.h"
 /* ==================== 定时器启动 ==================== */
 void My_Tim_Init(void)
 {
@@ -41,4 +41,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             IMU_Quat_ToEuler(&imu.quat, &imu.angle);
         }
     }
+
+    if (htim->Instance == TIM17) {
+        Motor_Callback_Demo();
+    }
+
 }
