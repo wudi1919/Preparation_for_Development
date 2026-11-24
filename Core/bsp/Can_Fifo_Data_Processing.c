@@ -84,11 +84,11 @@ void can_data_processing(uint8_t can_ch)
  */
 void can_data_processing_Demo(void) {
     uint16_t id   = rec_id1;                     /* 通道 1 最近一帧的反馈 ID */
-    uint8_t *data = rx_data1;                    /* 通道 1 最近一帧的反馈数据 */
+    // uint8_t *data = rx_data1;                    /* 通道 1 最近一帧的反馈数据 */
 
     /* 只认 GM6020 的反馈 ID 范围 */
     if (id < GM6020_CALLBACK + 1 || id > GM6020_CALLBACK + 7)
         return;
-    Mo_Demo.Mo_Angel.Actual = (uint16_t)((data[0] << 8) | data[1]);  /* 机械角 0~8191 */
-    Mo_Demo.Mo_Speed.Actual = (int16_t)((data[2] << 8) | data[3]);   /* 转速 RPM（有符号） */
+    Mo_Demo.Mo_Angel.Actual = (uint16_t)((rx_data1[0] << 8) | rx_data1[1]);  /* 机械角 0~8191 */
+    Mo_Demo.Mo_Speed.Actual = (int16_t)((rx_data1[2] << 8) | rx_data1[3]);   /* 转速 RPM（有符号） */
 }

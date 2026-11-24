@@ -14,6 +14,7 @@ typedef struct {
     float ErrorInt;   // 误差积分（带符号）
     float OutMax;     // 输出限幅（±）
     float IntMax;     // 误差积分限幅（±）
+    float DeadBand;   // 死区：|误差| < 此值时保持上次输出（低速抗抖）
     float Kp;
     float Ki;
     float Kd;

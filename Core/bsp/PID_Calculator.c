@@ -20,6 +20,11 @@ void PID_Calculator(PID_Data * p) {
     p->Error1 = p->Error0;                       // 上次误差
     p->Error0 = p->Target - p->Actual;           // 本次误差 = 目标 - 实际
 
+    /* 死区：误差在死区内不更新输出，保持上次电流，避免低速量化/噪声引起抖动 */
+    if (p->DeadBand > 0.0f && p->Error0 > -p->DeadBand && p->Error0 < p->DeadBand) {
+        return;
+    }
+
     /* 抗饱和积分：输出顶在上限且误差仍为正时停止积分；顶在下限且误差仍为负时停止积分 */
     int sat_hi = (p->Out >=  p->OutMax) && (p->Error0 > 0);
     int sat_lo = (p->Out <= -p->OutMax) && (p->Error0 < 0);
