@@ -41,4 +41,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             IMU_Quat_ToEuler(&imu.quat, &imu.angle);
         }
     }
+
+
 }

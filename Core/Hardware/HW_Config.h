@@ -7,7 +7,7 @@
 #include "stm32h7xx_hal.h"
 
 /* 电机数量 */
-#define Mo_number 4
+
 
 /* 底盘尺寸（麦轮运动学解算用，单位 m） */
 #define L_chassis 0.19f

@@ -31,5 +31,4 @@ typedef struct {
     PID_Data Mo_Direction;
 }Mo_PID;
 
-Mo_PID Mo_Demo;
 #endif //BLUETOOTH_MACCAR1_0_OVERALL_STRUCT_H
