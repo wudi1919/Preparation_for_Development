@@ -34,6 +34,7 @@
 #include "bsp_fdcan.h"
 #include "Buzzer.h"
 #include "Motor_Contral.h"
+#include "PID_Calculator.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -122,8 +123,9 @@ int main(void)
   Serial_Init();    // 初始化串口（打印调试用）
   Power_Contral(ALL);
   Buzzer_Init();    // 初始化蜂鸣器（默认静音）
-  uint8_t a[8] ={0x0f,0x00,0x00,0x00,0x00,0x00,0x00,0x00};   // motor1 = 3000
-  Mo_Set_Current(1,GM6020,1, 000);
+  /* 一号电机 demo：CAN1、GM6020、电机1，速度环，目标 300 rpm */
+  PID_config(&Mo_GM6020[0][0].Mo_Speed, 15.0f, 1.0f, 0.0f, 1000.0f, 16384.0f);
+  Mo_PID_Speed(1, GM6020, 1, 100);
   //Buzzer_Beep_multiple(100, 2);//初始化完成(可选,解除注释即可)
   /* USER CODE END 2 */
 
@@ -134,10 +136,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    //fdcanx_send_data(&hfdcan1, 0X1FE,a,8);
-    Mo_Sent_Data(&hfdcan1,1,GM6020);
+    // 发送已由 Mo_PID_Callback（TIM17，10ms）统一处理，这里不用再手动发
     //Buzzer_Beep_multiple(100, 4);
-    Serial_Print_Euler(&imu.angle);
+    PID_PFINT(&Mo_GM6020[0][0].Mo_Speed);
+    //Serial_Print_Euler(&imu.angle);
   }
   /* USER CODE END 3 */
 }

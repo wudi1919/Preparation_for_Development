@@ -4,7 +4,7 @@
 
 #include "My_Tim.h"
 #include "BMI088driver.h"
-
+#include "Motor_Contral.h"
 /* ==================== 定时器启动 ==================== */
 void My_Tim_Init(void)
 {
@@ -12,9 +12,10 @@ void My_Tim_Init(void)
      * PSC=239 / ARR=999 → 240MHz / 240 / 1000 = 1kHz，NVIC 已由 CubeMX 配好 */
     HAL_TIM_Base_Start_IT(&htim14);
 
-    /* 以后加更多定时器在这里接着 start，例如：
-     * HAL_TIM_Base_Start_IT(&htim2);
-     */
+    /* TIM17：10ms PID 控制定时器（CubeMX 没开中断，这里手动配 NVIC 并启动） */
+    HAL_NVIC_SetPriority(TIM17_IRQn, 1, 0);
+    HAL_NVIC_EnableIRQ(TIM17_IRQn);
+    HAL_TIM_Base_Start_IT(&htim17);
 }
 
 /* ==================== 定时器周期回调 ====================
@@ -41,6 +42,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             IMU_Quat_ToEuler(&imu.quat, &imu.angle);
         }
     }
+    if (htim->Instance == TIM17)
+    {
+        Mo_PID_Callback();   /* 10ms PID 控制闭环 */
+    }
 
+}
 
+/* TIM17 溢出中断入口（CubeMX 未生成，这里手动补上） */
+void TIM17_IRQHandler(void)
+{
+    HAL_TIM_IRQHandler(&htim17);
 }
