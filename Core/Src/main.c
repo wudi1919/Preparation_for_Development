@@ -109,6 +109,7 @@ int main(void)
   MX_USART10_UART_Init();
   MX_TIM14_Init();
   MX_TIM12_Init();
+  MX_TIM17_Init();
   /* USER CODE BEGIN 2 */
   /* 启动时把所有 FDCAN 切换到标准 CAN（经典模式，1Mbps） */
   bsp_can_switch(&hfdcan1, CAN_CLASS, CAN_BR_1M);

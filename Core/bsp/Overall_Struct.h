@@ -27,15 +27,9 @@ typedef enum {
 }Mo_type;
 
 typedef struct {
-    
-    Mo_type type;
-    uint16_t Target_Angel_Direction;
-    uint16_t Actual_Angle_Direction;
-    uint16_t Target_Speed;
-    uint16_t Actual_Speed;
-    HAL_StatusTypeDef Work_Status;
+    PID_Data Mo_Speed;
+    PID_Data Mo_Direction;
+}Mo_PID;
 
-}Mo_Sta_typ;
-
-
+Mo_PID Mo_Demo;
 #endif //BLUETOOTH_MACCAR1_0_OVERALL_STRUCT_H

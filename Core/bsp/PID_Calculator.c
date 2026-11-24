@@ -5,7 +5,7 @@
 #include "PID_Calculator.h"
 #include "Overall_Struct.h"
 
-PID_Data Mo_PID[Mo_number + 1] = {0};
+
 
 /**
  * @brief  位置式 PID 计算（速度环单环）

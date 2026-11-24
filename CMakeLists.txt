@@ -41,6 +41,7 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/Hardware/Motor_Contral.c
         Core/Hardware/Motor_Contral.h
         Core/Hardware/Buzzer.h
+        Core/bsp/Overall_Struct.c
 )
 
 # Add STM32CubeMX generated sources
