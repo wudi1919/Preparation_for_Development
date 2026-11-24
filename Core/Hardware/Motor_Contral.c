@@ -7,6 +7,12 @@
 #include "bsp_fdcan.h"
 #include "PID_Calculator.h"
 
+/* 电机 PID 变量统一定义在此（头文件里是 extern 声明） */
+Mo_PID_Data Mo_GM6020[3][7] = {0};
+Mo_PID_Data Mo_C610[3][7] = {0};
+Mo_PID_Data Mo_C620[3][7] = {0};
+Mo_PID_Data Mo_Demo = {0};
+
 static int8_t TX_Buffer_Demo[8] = {0};
 
 /**

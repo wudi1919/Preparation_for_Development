@@ -34,6 +34,7 @@
 #include "bsp_fdcan.h"
 #include "Buzzer.h"
 #include "Motor_Contral.h"
+#include "PID_Calculator.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -123,7 +124,7 @@ int main(void)
   Power_Contral(ALL);
   Buzzer_Init();    // 初始化蜂鸣器（默认静音）
   uint8_t a[8] ={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};   // motor1 = 3000
-
+  PID_config(&Mo_Demo.Mo_Speed,0.0,0.0,0.0,10000,10000);
   //Buzzer_Beep_multiple(100, 4);//初始化完成(可选,解除注释即可)
   /* USER CODE END 2 */
 
@@ -137,7 +138,8 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
     //Buzzer_Beep_multiple(100, 4);
-    Serial_Print_Euler(&imu.angle);
+    //Serial_Print_Euler(&imu.angle);
+    PID_PFINT(&Mo_Demo.Mo_Speed);
   }
   /* USER CODE END 3 */
 }

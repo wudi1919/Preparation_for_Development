@@ -85,7 +85,6 @@ void can_data_processing(uint8_t can_ch)
 void can_data_processing_Demo(void) {
     uint16_t id   = rec_id1;                     /* 通道 1 最近一帧的反馈 ID */
     uint8_t *data = rx_data1;                    /* 通道 1 最近一帧的反馈数据 */
-    uint8_t idx;
 
     /* 只认 GM6020 的反馈 ID 范围 */
     if (id < GM6020_CALLBACK + 1 || id > GM6020_CALLBACK + 7)

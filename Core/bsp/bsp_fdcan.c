@@ -238,9 +238,8 @@ uint16_t rec_id1;
 void fdcan1_rx_callback(void)
 {
 
-    //fdcanx_receive(&hfdcan1, &rec_id1, rx_data1);   /* 先收一帧到 rec_id1/rx_data1 */
+    fdcanx_receive(&hfdcan1, &rec_id1, rx_data1);   /* 先收一帧到 rec_id1/rx_data1 */
     can_data_processing_Demo();                     /* 再解析 GM6020 反馈 */
-
 }
 
 uint8_t rx_data2[64] = {0};

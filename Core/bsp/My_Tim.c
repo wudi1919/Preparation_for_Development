@@ -11,6 +11,7 @@ void My_Tim_Init(void)
     /* TIM14：1ms（1kHz）周期定时器
      * PSC=239 / ARR=999 → 240MHz / 240 / 1000 = 1kHz，NVIC 已由 CubeMX 配好 */
     HAL_TIM_Base_Start_IT(&htim14);
+    HAL_TIM_Base_Start_IT(&htim17);   /* TIM17：电机 PID 控制周期定时器 */
 
     /* 以后加更多定时器在这里接着 start，例如：
      * HAL_TIM_Base_Start_IT(&htim2);
