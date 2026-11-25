@@ -36,8 +36,11 @@ typedef enum {
 ## 3. API 一览
 
 ```c
-// 电机初始化 + PID 参数配置统一入口，主函数只调一次
+// 【配置函数】电机初始化 + PID 参数配置统一入口，主函数只调一次
 void Mo_Init_DJI(void);
+
+// 【配置函数】启动 TIM17 电机控制定时器，主函数只调一次
+void Mo_Tim_Init_DJI(void);
 
 // 指定某路 CAN 上 C610/C620 的类型（每路只会是其中一种）
 void Mo_Select_DJI(uint8_t can_ch, uint8_t type);
@@ -71,15 +74,16 @@ void PID_config(PID_Data *pid, float kp, float ki, float kd, float out_max, floa
 
 ## 4. 例程
 
-### 4.0 初始化统一入口 `Mo_Init_DJI`
+### 4.0 必须配置的两个函数
 
 所有电机的「选型 + PID 参数配置 + 初始目标」都收敛到 `Mo_Init_DJI()` 里，主函数只需调一次：
 
 ```c
-Mo_Init_DJI();   // 在 main() 的 USER CODE BEGIN 2 里，仅此一句
+Mo_Init_DJI();       // 电机 PID 参数配置
+Mo_Tim_Init_DJI();   // 启动 TIM17 电机控制定时器
 ```
 
-`Mo_Init_DJI()` 内部（C610 电调范例，位于 `Motor_Contral.c`）：
+`Mo_Init_DJI()` 内部（C610 电调范例，位于 `Mo_Contral_DJI.c`）：
 
 ```c
 void Mo_Init_DJI(void) {
@@ -91,29 +95,37 @@ void Mo_Init_DJI(void) {
 }
 ```
 
+**② `Mo_Tim_Init_DJI()`** —— 启动 TIM17（20ms 控制周期）：
+
+```c
+void Mo_Tim_Init_DJI(void) {
+    HAL_TIM_Base_Start_IT(&htim17);
+    // 其他 CAN 通道的配置见该函数内注释
+}
+```
+
 **使用规则**：
 - 换电机 / 改参数 / 改初始目标，都在 `Mo_Init_DJI()` 内部改，**不要往 `main.c` 里堆初始化**。
+- 多路 CAN 电机：在 `Mo_Tim_Init_DJI()` 注释里按说明加 `Mo_PID_Callbakc_DJI` 调用。
 - GM6020 初始化时：`PID_config` 的 `OutMax` 改 `30000`（电压指令）、数组用 `GM6020_stat`、`Mo_Set_Gravity_FF_DJI` 按机构标定，其余同理。
 - 初始目标这行如需速度环，换成 `Mo_PID_Speed_Control_DJI`；不想要上电就动，删掉这行即可。
 
 ---
 
-### 4.1 C610 速度环（已有自整定参数）
+### 4.1 C610 速度环
+
+初始化（选型 + PID）已在 `Mo_Init_DJI()` 里完成，运行时只需设目标：
 
 ```c
-Mo_Select_DJI(1, C610);
-PID_config(&C610_stat[0][4].Speed, 3.0f, 2.0f, 0.45f, 1000.0f, 3000.0f);
 Mo_PID_Speed_Control_DJI(C610, 5, 120, 1);   // CAN1, ID5, 120 RPM
 ```
 
 ### 4.2 C610 绝对位置（0~360°）
 
+初始化已在 `Mo_Init_DJI()` 里完成，运行时只需设目标：
+
 ```c
-Mo_Select_DJI(1, C610);
-PID_config(&C610_stat[0][4].Speed, 3.0f, 2.0f, 0.45f, 1000.0f, 3000.0f); // 内环
-Mo_PID_Position_Config_DJI(C610, 5, 2.0f, 0.3f, 0.0f, 120.0f, 1);          // 外环
-Mo_Set_Gravity_FF_DJI(C610, 5, 0.0f, 0.0f, 1);                             // 无重力负载
-Mo_PID_Position_Control_DJI(C610, 5, 90.0f, 1);                            // 转到 90°
+Mo_PID_Position_Control_DJI(C610, 5, 90.0f, 1);   // 转到 90°
 ```
 
 ### 4.3 C610 相对增量角度（可超 360°，多圈）
@@ -125,12 +137,10 @@ Mo_PID_Increment_Control_DJI(C610, 5, 720.0f, 1);
 
 ### 4.4 GM6020 位置环
 
+初始化里改用 `GM6020_stat`、`OutMax=30000`（电压指令），运行时设目标：
+
 ```c
-Mo_Select_DJI(1, GM6020);   // GM6020 恒为该类型，此句可省略
-PID_config(&GM6020_stat[0][0].Speed, 3.0f, 2.0f, 0.45f, 30000.0f, 30000.0f); // 电压指令
-Mo_PID_Position_Config_DJI(GM6020, 1, 2.0f, 0.3f, 0.0f, 120.0f, 1);           // 参数需标定
-Mo_Set_Gravity_FF_DJI(GM6020, 1, 0.0f, 0.0f, 1);                              // 机械臂需标定
-Mo_PID_Position_Control_DJI(GM6020, 1, 90.0f, 1);                             // 转到 90°
+Mo_PID_Position_Control_DJI(GM6020, 1, 90.0f, 1);   // 转到 90°
 ```
 
 ### 4.5 机械臂夹取任务（状态机示例）

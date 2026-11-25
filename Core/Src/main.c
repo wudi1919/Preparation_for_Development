@@ -33,7 +33,7 @@
 #include "Power_Contral.h"
 #include "bsp_fdcan.h"
 #include "Buzzer.h"
-#include "Motor_Contral.h"
+#include "Mo_Contral_DJI.h"
 #include "PID_Calculator.h"
 #include "bsp_delay.h"
 /* USER CODE END Includes */
@@ -123,10 +123,8 @@ int main(void)
   Serial_Init();    // 初始化串口（打印调试用）
   Power_Contral(ALL);
   Buzzer_Init();    // 初始化蜂鸣器（默认静音）
-  Mo_Init_DJI();   // 电机初始化 + PID 参数配置，全部收敛在 Motor_Contral.c 的 Mo_Init_DJI()
-
-
-
+  Mo_Init_DJI();       // 电机 PID 参数配置（Mo_Contral_DJI.c）
+  Mo_Tim_Init_DJI();   // 启动 TIM17 电机控制定时器（Mo_Contral_DJI.c）
   /* USER CODE END 2 */
 
   /* Infinite loop */

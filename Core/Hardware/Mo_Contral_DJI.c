@@ -2,7 +2,8 @@
 // Created by Ken on 2026/11/22.
 //
 
-#include "Motor_Contral.h"
+#include "Mo_Contral_DJI.h"
+#include "tim.h"
 #include"HW_Config.h"
 #include"Overall_Struct.h"
 #include "bsp_fdcan.h"
@@ -15,7 +16,8 @@
 /* C610/GM6020 角度差分测速的一阶低通系数 */
 #define SPEED_DIFF_LPF_ALPHA 0.25f
 
-static uint8_t CAN_GM6020[3][8];//考虑到can总线负载每一路只考虑使用最多8个大疆的电机所以id是1到4还是5到八也需要单独配置
+/* CAN 总线负载：每路最多 8 个大疆电机，id 1~4 或 5~8 需按通道单独配置 */
+static uint8_t CAN_GM6020[3][8];
 static uint8_t CAN_C620_and_C610[3][8];
 
 
@@ -25,7 +27,9 @@ Mo_PID_Data C620_stat[3][8];
 Mo_PID_Data C610_stat[3][8];
 uint8_t CAN3__C620_and_C610_Type_select[3];
 
-void Mo_Init_DJI(void) {//电机初始化+PID参数配置全部放在这里面,主函数统一调用,下面是C610电调的范例
+/* 【配置函数】电机初始化 + PID 参数配置，全部放这里，主函数只调一次。
+ * 下面是 C610 电调范例，换电机/改参数/改初始目标都在这里改。 */
+void Mo_Init_DJI(void) {
     /* 选择 CAN1 上 C610/C620 类型为 C610 */
     Mo_Select_DJI(1, C610);
 
@@ -44,6 +48,31 @@ void Mo_Init_DJI(void) {//电机初始化+PID参数配置全部放在这里面,�
 
 
 }
+/* 【配置函数】启动电机控制定时器，主函数只调一次。其他 CAN 通道配置见下方注释。 */
+void Mo_Tim_Init_DJI(void) {
+    /* 启动 TIM17：20ms 控制周期（CubeMX 已配好 PSC=239/ARR=9999）。
+     * 每个周期进 My_Tim.c 的 HAL_TIM_PeriodElapsedCallback() 的 TIM17 分支，
+     * 调用 Mo_PID_Callbakc_DJI() 完成 PID 计算 + CAN 发送。 */
+    HAL_TIM_Base_Start_IT(&htim17);
+
+    /* ============================================================
+     *  其他 CAN 通道的电机配置（多路电机时按需增加）：
+     *
+     *  周期回调统一在 My_Tim.c 的 TIM17 分支里，当前默认只配了 CAN1：
+     *      Mo_PID_Callbakc_DJI(1, 1, 2);
+     *
+     *  参数含义 Mo_PID_Callbakc_DJI(Can_Ch, GM6020_Ch, C620_And_C610_Ch)：
+     *    Can_Ch           CAN 外设 1/2/3（对应 hfdcan1/2/3）
+     *    GM6020_Ch        1=发 0x1FE(ID1~4)   2=发 0x2FE(ID5~8)
+     *    C620_And_C610_Ch 1=发 0x200(ID1~4)   2=发 0x1FF(ID5~8)
+     *
+     *  要加 CAN2 电机：在 My_Tim.c 的 TIM17 回调里加一句
+     *      Mo_PID_Callbakc_DJI(2, 1, 2);
+     *  要加 CAN3 电机：再加一句
+     *      Mo_PID_Callbakc_DJI(3, 1, 2);
+     * ============================================================ */
+}
+
 
 void Mo_Select_DJI(uint8_t Can_Ch,uint8_t type) {
     CAN3__C620_and_C610_Type_select[Can_Ch-1] = type;
@@ -181,10 +210,6 @@ void Mo_PID_Speed_Control_DJI(uint8_t type,uint8_t id,int16_t Speed,uint8_t can_
     /* 只负责设置目标转速（PID 计算在 Mo_PID_Callbakc_DJI 里统一做），并切到速度环模式 */
     stat->Speed.Target = Speed;
     stat->CtrlMode = DJI_CTRL_SPEED;
-}
-
-void Mo_PID_Direction_Control_DJI(uint8_t type,uint8_t id,int16_t direction ,uint8_t can_Ch) {
-
 }
 
 /* ---------------- 位置 / 增量角度控制（串级外环） ---------------- */

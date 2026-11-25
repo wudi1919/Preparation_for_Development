@@ -18,7 +18,7 @@
  * 电调直报速度在低速时噪声极大，不适合低速闭环。统一改用机械角 0~8191
  * 差分：20ms 窗口 120 RPM → 约 328 counts，量化误差仅 ±0.37 RPM。
  * 累计时处理 0~360° 回卷，得到连续多圈角度（可超 360°），
- * 同时供 Motor_Contral 差分测速和位置/增量角度环使用。 */
+ * 同时供 Mo_Contral_DJI 差分测速和位置/增量角度环使用。 */
 #define DJI_ANGLE_SCALE (360.0f / 8192.0f)   /* counts → 度 */
 
 static float   dji_angle_multiturn[3][8];    /* 多圈累计角度（度，可超360） */
@@ -63,12 +63,12 @@ extern uint16_t rec_id2;
 extern uint8_t  rx_data3[64];
 extern uint16_t rec_id3;
 
-/* Motor_Contral.c 里的反馈状态数组 */
+/* Mo_Contral_DJI.c 里的反馈状态数组 */
 extern Mo_PID_Data GM6020_stat[3][8];
 extern Mo_PID_Data C610_stat[3][8];
 extern Mo_PID_Data C620_stat[3][8];
 
-/* Motor_Contral.c 里的类型选择：每个 CAN 通道只会是 C610 或 C620 其中一种 */
+/* Mo_Contral_DJI.c 里的类型选择：每个 CAN 通道只会是 C610 或 C620 其中一种 */
 extern uint8_t CAN3__C620_and_C610_Type_select[3];
 
 /**
@@ -104,7 +104,7 @@ void Can_Data_Processing_DJI(uint8_t Can_Ch) {
     if (rec_id > C610_CALLBACK && rec_id <= C610_CALLBACK + 8) {
         id = (uint8_t)(rec_id - C610_CALLBACK);   /* 1~8 */
         if (CAN3__C620_and_C610_Type_select[c] == C610) {
-            /* C610：累积多圈角度（测速在 Motor_Contral 用多圈角度差分做） */
+            /* C610：累积多圈角度（测速在 Mo_Contral_DJI 用多圈角度差分做） */
             DJI_Angle_Accumulate(c, id - 1, angle);
             return;
         }

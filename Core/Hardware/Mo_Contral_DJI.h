@@ -2,12 +2,16 @@
 // Created by Ken on 2026/11/22.
 //
 
-#ifndef H7_PREPARED_DEVELOPMENT_MOTOR_CONTRAL_H
-#define H7_PREPARED_DEVELOPMENT_MOTOR_CONTRAL_H
+#ifndef H7_PREPARED_DEVELOPMENT_MO_CONTRAL_DJI_H
+#define H7_PREPARED_DEVELOPMENT_MO_CONTRAL_DJI_H
 #include"Overall_Struct.h"
 
-/* 电机初始化 + PID 参数配置，统一放这里，主函数只调一次 */
+/* 【配置函数】电机初始化 + PID 参数配置，统一放这里，主函数只调一次 */
 void Mo_Init_DJI(void);
+
+/* 【配置函数】启动 TIM17 电机控制定时器（20ms 周期回调做 PID + CAN 发送）。
+ * 其他 CAN 通道的配置方法见函数内注释。 */
+void Mo_Tim_Init_DJI(void);
 
 /* 设置某路 CAN 上 C610/C620 的类型（每个通道只会是 C610 或 C620 其中一种） */
 void Mo_Select_DJI(uint8_t Can_Ch, uint8_t type);
@@ -45,4 +49,4 @@ extern Mo_PID_Data C620_stat[3][8];
 extern Mo_PID_Data C610_stat[3][8];
 extern uint8_t CAN3__C620_and_C610_Type_select[3];
 
-#endif //H7_PREPARED_DEVELOPMENT_MOTOR_CONTRAL_H
+#endif //H7_PREPARED_DEVELOPMENT_MO_CONTRAL_DJI_H

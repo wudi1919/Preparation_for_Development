@@ -38,8 +38,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/bsp/My_Tim.c
         Core/bsp/My_Tim.h
         Core/Hardware/HW_Config.h
-        Core/Hardware/Motor_Contral.c
-        Core/Hardware/Motor_Contral.h
+        Core/Hardware/Mo_Contral_DJI.c
+        Core/Hardware/Mo_Contral_DJI.h
         Core/Hardware/Buzzer.h
         Core/bsp/bsp_Can_Callback.c
         Core/bsp/bsp_Can_Callback.h

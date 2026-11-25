@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "PID_Calculator.h"
-#include"Motor_Contral.h"
+#include"Mo_Contral_DJI.h"
 
 /* rx_buffer 必须放在 DMA 可访问的 RAM_D2（见 .ld 的 .dma_buffer 段）：
  * 默认 .bss 在 DTCMRAM，而 DMA1/DMA2 物理上访问不到 DTCM，
