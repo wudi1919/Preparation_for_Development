@@ -28,3 +28,7 @@ void Mo_Select(uint8_t Can_Ch,uint8_t type) {
 void Mo_Set_current(uint8_t type,uint8_t id,int16_t current,uint8_t* Tx_Buffer[]) {
 
 };
+
+void Mo_Callback(void) {
+
+}
