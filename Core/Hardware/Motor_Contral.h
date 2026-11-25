@@ -15,6 +15,12 @@ void Mo_Set_current_DJI(uint8_t type, uint8_t id, int16_t current, uint8_t can_C
 /* 把指定 CAN 通道的 Tx 缓冲按标识符发送出去 */
 void Mo_Callback_DJI(uint8_t Can_Ch, uint8_t GM6020_Ch, uint8_t C620_And_C610_Ch);
 
+/* 速度环 PID：目标转速 → PID 计算 → 电流写入 Tx 缓冲 */
+void Mo_PID_Speed_Control_DJI(uint8_t type, uint8_t id, int16_t Speed, uint8_t can_Ch);
+
+/* 周期回调：跑速度环 PID 并发送 */
+void Mo_PID_Callbakc_DJI(uint8_t Can_Ch, uint8_t GM6020_Ch, uint8_t C620_And_C610_Ch);
+
 /* 反馈状态数组（由 Can_Data_Processing_DJI 写入转速/角度） */
 extern Mo_PID_Data GM6020_stat[3][8];
 extern Mo_PID_Data C620_stat[3][8];

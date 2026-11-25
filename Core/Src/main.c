@@ -34,6 +34,7 @@
 #include "bsp_fdcan.h"
 #include "Buzzer.h"
 #include "Motor_Contral.h"
+#include "PID_Calculator.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -122,8 +123,9 @@ int main(void)
   Power_Contral(ALL);
   Buzzer_Init();    // 初始化蜂鸣器（默认静音）
   Mo_Select_DJI(1,C610);
-  uint8_t a[8] ={0x0f,0x0B,0x00,0x00,0x00,0x00,0x00,0x00};   // motor1 = 3000
-  Mo_Set_current_DJI(C610,5,10,1);
+  PID_config(&C610_stat[0][4].Speed, 9.0f, 0.0f, 0.0f, 10000.0f, 3000.0f);  // C610 5号 速度环 PID
+
+   Mo_PID_Speed_Control_DJI(C610,5,200,1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -133,7 +135,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    fdcanx_send_data(&hfdcan1,0x1FE, a,8);
     //Buzzer_Beep(100);
     Serial_Print_Euler(&imu.angle);
   }

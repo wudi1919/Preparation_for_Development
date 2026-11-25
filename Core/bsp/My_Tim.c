@@ -43,7 +43,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         }
     }
     if (htim->Instance == TIM17) {
-        Mo_Callback_DJI(1,1,2);
+        Mo_PID_Callbakc_DJI(1, 1, 2);
     }
 
 }
