@@ -123,9 +123,9 @@ int main(void)
   Power_Contral(ALL);
   Buzzer_Init();    // 初始化蜂鸣器（默认静音）
   Mo_Select_DJI(1,C610);
-  PID_config(&C610_stat[0][4].Speed, 9.0f, 0.0f, 0.0f, 10000.0f, 3000.0f);  // C610 5号 速度环 PID
+  PID_config(&C610_stat[0][4].Speed, 9.00f, 0.0f, 0.0f, 1000.0f, 3000.0f);  // C610 5号 速度环 PID
 
-   Mo_PID_Speed_Control_DJI(C610,5,200,1);
+   Mo_PID_Speed_Control_DJI(C610,5,60,1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -136,7 +136,8 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     //Buzzer_Beep(100);
-    Serial_Print_Euler(&imu.angle);
+    PID_PFINT(&C610_stat[0][4].Speed);
+    //Serial_Print_Euler(&imu.angle);
   }
   /* USER CODE END 3 */
 }

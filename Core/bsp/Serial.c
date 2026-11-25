@@ -107,7 +107,7 @@ void Serial_Printf(const char *format, ...)//这个是printf的重定义
 // }//目前串口接收暂时不需要
 
 void PID_PFINT(PID_Data * p) {
-    Serial_Printf("%f,%f,%f\n", p->Target,p->Actual,p->Error0);
+    Serial_Printf("%f,%f,%f,%f\n", p->Target,p->Actual,p->Error0,p->Out);
 }
 
 /* 打印欧拉角（角度制），用指针传参避免拷贝 */

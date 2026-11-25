@@ -67,6 +67,12 @@ void Mo_Callback_DJI(uint8_t Can_Ch,uint8_t GM6020_Ch,uint8_t C620_And_C610_Ch) 
     }
 }
 
+static void Mo_PID_Speed_Calc_DJI(Mo_PID_Data *stat, uint8_t type, uint8_t id, uint8_t can_Ch) {
+    /* 正常速度环 PID：目标 → PID → 电流写入缓冲 */
+    PID_Calculator(&stat->Speed);
+    Mo_Set_current_DJI(type, id, (int16_t)stat->Speed.Out, can_Ch);
+}
+
 void Mo_PID_Callbakc_DJI(uint8_t Can_Ch,uint8_t GM6020_Ch,uint8_t C620_And_C610_Ch) {
     if (Can_Ch < 1 || Can_Ch > 3) return;
 
@@ -76,16 +82,13 @@ void Mo_PID_Callbakc_DJI(uint8_t Can_Ch,uint8_t GM6020_Ch,uint8_t C620_And_C610_
 
     for (uint8_t i = 0; i < 4; i++) {
         uint8_t gid = gm_base + i;
-        PID_Calculator(&GM6020_stat[ch][gid - 1].Speed);
-        Mo_Set_current_DJI(GM6020, gid, (int16_t)GM6020_stat[ch][gid - 1].Speed.Out, Can_Ch);
+        Mo_PID_Speed_Calc_DJI(&GM6020_stat[ch][gid - 1], GM6020, gid, Can_Ch);
 
         uint8_t cid = c_base + i;
         if (CAN3__C620_and_C610_Type_select[ch] == C610) {
-            PID_Calculator(&C610_stat[ch][cid - 1].Speed);
-            Mo_Set_current_DJI(C610, cid, (int16_t)C610_stat[ch][cid - 1].Speed.Out, Can_Ch);
+            Mo_PID_Speed_Calc_DJI(&C610_stat[ch][cid - 1], C610, cid, Can_Ch);
         } else if (CAN3__C620_and_C610_Type_select[ch] == C620) {
-            PID_Calculator(&C620_stat[ch][cid - 1].Speed);
-            Mo_Set_current_DJI(C620, cid, (int16_t)C620_stat[ch][cid - 1].Speed.Out, Can_Ch);
+            Mo_PID_Speed_Calc_DJI(&C620_stat[ch][cid - 1], C620, cid, Can_Ch);
         }
     }
 
@@ -107,3 +110,6 @@ void Mo_PID_Speed_Control_DJI(uint8_t type,uint8_t id,int16_t Speed,uint8_t can_
     stat->Speed.Target = Speed;
 }
 
+void Mo_PID_Direction_Control_DJI(uint8_t type,uint8_t id,int16_t direction ,uint8_t can_Ch) {
+
+}

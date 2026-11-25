@@ -8,6 +8,9 @@
 
 #include <stdint.h>
 
+/* 转速一阶低通滤波系数：越小越平滑（滞后越大），范围 0~1 */
+#define SPEED_LPF_ALPHA 0.3f
+
 /* bsp_fdcan.c 里的接收缓冲与 ID（全局，此处 extern 引用，不拷贝） */
 extern uint8_t  rx_data1[64];
 extern uint16_t rec_id1;
@@ -57,12 +60,12 @@ void Can_Data_Processing_DJI(uint8_t Can_Ch) {
     if (rec_id > C610_CALLBACK && rec_id <= C610_CALLBACK + 8) {
         id = (uint8_t)(rec_id - C610_CALLBACK);   /* 1~8 */
         if (CAN3__C620_and_C610_Type_select[c] == C610) {
-            C610_stat[c][id - 1].Speed.Actual = speed;
+            C610_stat[c][id - 1].Speed.Actual += SPEED_LPF_ALPHA * (speed - C610_stat[c][id - 1].Speed.Actual);
             C610_stat[c][id - 1].Angel.Actual = angle;
             return;
         }
         if (CAN3__C620_and_C610_Type_select[c] == C620) {
-            C620_stat[c][id - 1].Speed.Actual = speed;
+            C620_stat[c][id - 1].Speed.Actual += SPEED_LPF_ALPHA * (speed - C620_stat[c][id - 1].Speed.Actual);
             C620_stat[c][id - 1].Angel.Actual = angle;
             return;
         }
@@ -71,7 +74,7 @@ void Can_Data_Processing_DJI(uint8_t Can_Ch) {
     /* GM6020：反馈 ID = 0x204 + ID（1~7） */
     if (rec_id > GM6020_CALLBACK && rec_id <= GM6020_CALLBACK + 7) {
         id = (uint8_t)(rec_id - GM6020_CALLBACK);  /* 1~7 */
-        GM6020_stat[c][id - 1].Speed.Actual = speed;
+        GM6020_stat[c][id - 1].Speed.Actual += SPEED_LPF_ALPHA * (speed - GM6020_stat[c][id - 1].Speed.Actual);
         GM6020_stat[c][id - 1].Angel.Actual = angle;
     }
 }
