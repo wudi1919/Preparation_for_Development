@@ -20,6 +20,7 @@
 extern uint8_t  rx_buffer[RX_BUFFER_SIZE];
 extern volatile uint16_t rx_length;
 extern volatile uint8_t  rx_flag;
+extern volatile uint32_t dbg_rx_evt;
 
 void Serial_Init(void);
 void UART_Print_singal(uint8_t Byte);

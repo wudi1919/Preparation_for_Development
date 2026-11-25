@@ -123,9 +123,21 @@ int main(void)
   Power_Contral(ALL);
   Buzzer_Init();    // 初始化蜂鸣器（默认静音）
   Mo_Select_DJI(1,C610);
-  PID_config(&C610_stat[0][4].Speed, 9.00f, 0.0f, 0.0f, 1000.0f, 3000.0f);  // C610 5号 速度环 PID
 
-   Mo_PID_Speed_Control_DJI(C610,5,60,1);
+  /* ============================================================
+   *  C610 #5 速度环参数（三阶段网格自整定结果，120 RPM 目标）
+   *  Kp=3.0 Ki=2.0 Kd=0.45 → 实测 Mean=120.2 RPM, SD=3.9 RPM
+   *  关键前提（缺一都会抖）：
+   *    dt=0.02s 与 TIM17 真实周期一致；
+   *    C610 T法测速 + α=0.35 LPF（否则 D 项放大混叠纹波形成锯齿极限环）；
+   *    积分分离带宽 ±200（±30 会与静摩擦形成极限环）。
+   *  OutMax=1000 → C610 电流指令 ±1000（约 ±1A，安全保守）
+   *  IntMax=3000 → 积分限幅，防止积分饱和
+   *  通过串口调 Kp/Ki/Kd 见 Serial.c 的 UART_Data_Read
+   * ============================================================ */
+  PID_config(&C610_stat[0][4].Speed, 3.0f, 2.0f, 0.45f, 1000.0f, 3000.0f);
+
+  Mo_PID_Speed_Control_DJI(C610, 5, 60, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -135,9 +147,25 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    //Buzzer_Beep(100);
-    PID_PFINT(&C610_stat[0][4].Speed);
-    //Serial_Print_Euler(&imu.angle);
+    if (rx_flag) {
+        rx_flag = 0;
+        UART_Data_Read();
+    }
+    /* 每 30ms 打一次：Target, Actual, Error, Out —— 够用又不阻塞 */
+    static uint32_t print_cnt = 0;
+    if (++print_cnt % 3 == 0) {
+        PID_PFINT(&C610_stat[0][4].Speed);
+    }
+    /* 每秒打一次串口接收诊断：空闲事件数 / DMA剩余 / UART状态寄存器 / 错误码 */
+    static uint32_t dbg_cnt = 0;
+    if (++dbg_cnt % 100 == 0) {
+        Serial_Printf("DBG evt=%lu ndtr=%lu cr1=%02lX isr=%08lX\r\n",
+                      (unsigned long)dbg_rx_evt,
+                      (unsigned long)__HAL_DMA_GET_COUNTER(huart7.hdmarx),
+                      (unsigned long)UART7->CR1,
+                      (unsigned long)UART7->ISR);
+    }
+    HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }

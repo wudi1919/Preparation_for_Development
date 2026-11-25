@@ -6,6 +6,7 @@
 #include"HW_Config.h"
 #include"Overall_Struct.h"
 #include "bsp_fdcan.h"
+#include "bsp_Can_Callback.h"
 #include "PID_Calculator.h"
 static uint8_t CAN_GM6020[3][8];//考虑到can总线负载每一路只考虑使用最多8个大疆的电机所以id是1到4还是5到八也需要单独配置
 static uint8_t CAN_C620_and_C610[3][8];
@@ -68,6 +69,16 @@ void Mo_Callback_DJI(uint8_t Can_Ch,uint8_t GM6020_Ch,uint8_t C620_And_C610_Ch) 
 }
 
 static void Mo_PID_Speed_Calc_DJI(Mo_PID_Data *stat, uint8_t type, uint8_t id, uint8_t can_Ch) {
+    /* C610 用 T 法角度差分测速覆盖 Actual：低速精度 ±0.4 RPM，
+     * 远优于电调直报速度（低速噪声 ±200 RPM）。本函数在 TIM17(20ms) 里调用，
+     * 与 DIFF_WINDOW_S 一致。
+     * 必须再叠一阶 LPF：T 法原始值含 ~14Hz 换相纹波，被 50Hz 采样混叠到 ~8Hz，
+     * D 项会把单样本跳变放大成 ±450 Out 尖峰，形成锯齿极限环（实测 Out ±800）。
+     * alpha=0.25 @50Hz → 截止 ~2.6Hz，进一步压混叠纹波残余，闭环穿越 ~1-2Hz 仍够用。 */
+    if (type == C610) {
+        float raw = Motor_DiffSpeed_RPM_C610(can_Ch, id);
+        stat->Speed.Actual += 0.25f * (raw - stat->Speed.Actual);
+    }
     /* 正常速度环 PID：目标 → PID → 电流写入缓冲 */
     PID_Calculator(&stat->Speed);
     Mo_Set_current_DJI(type, id, (int16_t)stat->Speed.Out, can_Ch);
