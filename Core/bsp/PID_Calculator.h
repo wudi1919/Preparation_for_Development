@@ -10,6 +10,10 @@
 void PID_Calculator(PID_Data * p);
 void PID_config(PID_Data * p, float kp, float ki, float kd, float OutMax, float IntMax);
 
+/* 增量式 PID：位置环用。target/actual 单位一致（度），Out 输出为目标转速（RPM） */
+void PID_Incremental_Calc(IncPID_Data * p, float target, float actual);
+void PID_Incremental_Config(IncPID_Data * p, float kp, float ki, float kd, float OutMax);
+
 
 
 #endif //PWM_CHASSIS_CONTROL_CALCULATOR_H

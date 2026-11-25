@@ -35,6 +35,7 @@
 #include "Buzzer.h"
 #include "Motor_Contral.h"
 #include "PID_Calculator.h"
+#include "bsp_delay.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -122,28 +123,21 @@ int main(void)
   Serial_Init();    // 初始化串口（打印调试用）
   Power_Contral(ALL);
   Buzzer_Init();    // 初始化蜂鸣器（默认静音）
-  Mo_Select_DJI(1,C610);
+  Mo_Init_DJI();   // 电机初始化 + PID 参数配置，全部收敛在 Motor_Contral.c 的 Mo_Init_DJI()
 
-  /* ============================================================
-   *  C610 #5 速度环参数（三阶段网格自整定结果，120 RPM 目标）
-   *  Kp=3.0 Ki=2.0 Kd=0.45 → 实测 Mean=120.2 RPM, SD=3.9 RPM
-   *  关键前提（缺一都会抖）：
-   *    dt=0.02s 与 TIM17 真实周期一致；
-   *    C610 T法测速 + α=0.35 LPF（否则 D 项放大混叠纹波形成锯齿极限环）；
-   *    积分分离带宽 ±200（±30 会与静摩擦形成极限环）。
-   *  OutMax=1000 → C610 电流指令 ±1000（约 ±1A，安全保守）
-   *  IntMax=3000 → 积分限幅，防止积分饱和
-   *  通过串口调 Kp/Ki/Kd 见 Serial.c 的 UART_Data_Read
-   * ============================================================ */
-  PID_config(&C610_stat[0][4].Speed, 3.0f, 2.0f, 0.45f, 1000.0f, 3000.0f);
 
-  Mo_PID_Speed_Control_DJI(C610, 5, 60, 1);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    Delay_ms(1000);
+    Mo_PID_Increment_Control_DJI(C610,5,720,1);
+
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

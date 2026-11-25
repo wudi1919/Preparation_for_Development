@@ -75,3 +75,44 @@ void PID_config(PID_Data * p, float kp, float ki, float kd, float OutMax, float 
     p->IntMax = IntMax;
     p->ErrorInt = 0.0f;      /* 换参数时清零积分，防止旧积分污染新参数的起始响应 */
 }
+
+/* ================================================================
+ *  增量式 PID（位置环，串级外环）
+ *  公式：Δu = Kp*(e-e1) + Ki*e + Kd*(e-2e1+e2)
+ *        Out += Δu，再对 Out 限幅
+ *  特点：
+ *    - 输出为增量累加，目标跳变不会造成输出突变，适合位置环；
+ *    - 稳态时 e=0 → Δu=0，Out 保持，天然抗积分饱和（输出不继续漂移）；
+ *    - 重力等持续负载造成的稳态误差由 Ki*e 项逐步消除。
+ *  dt 固定 20ms（TIM17），已折入 Ki/Kd，本函数不显式乘 dt。
+ * ================================================================ */
+void PID_Incremental_Calc(IncPID_Data * p, float target, float actual) {
+    if (p == NULL) return;
+
+    float e0 = target - actual;
+    float delta = p->Kp * (e0 - p->Error1)
+                + p->Ki * e0
+                + p->Kd * (e0 - 2.0f * p->Error1 + p->Error2);
+
+    p->Out += delta;
+    if (p->Out >  p->OutMax) p->Out =  p->OutMax;
+    if (p->Out < -p->OutMax) p->Out = -p->OutMax;
+
+    /* 递推误差历史 */
+    p->Error2 = p->Error1;
+    p->Error1 = e0;
+    p->Error0 = e0;
+}
+
+void PID_Incremental_Config(IncPID_Data * p, float kp, float ki, float kd, float OutMax) {
+    if (p == NULL) return;
+    p->Kp = kp;
+    p->Ki = ki;
+    p->Kd = kd;
+    p->OutMax = OutMax;
+    /* 换参数清空历史，防止旧状态污染新参数起始响应 */
+    p->Error0 = 0.0f;
+    p->Error1 = 0.0f;
+    p->Error2 = 0.0f;
+    p->Out    = 0.0f;
+}
