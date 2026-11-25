@@ -124,7 +124,6 @@ int main(void)
   Power_Contral(ALL);
   Buzzer_Init();    // 初始化蜂鸣器（默认静音）
   Mo_Init_DJI();       // 电机 PID 参数配置（Mo_Contral_DJI.c）
-  Mo_Tim_Init_DJI();   // 启动 TIM17 电机控制定时器（Mo_Contral_DJI.c）
   /* USER CODE END 2 */
 
   /* Infinite loop */

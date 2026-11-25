@@ -11,7 +11,7 @@ void My_Tim_Init(void)
     /* TIM14：1ms（1kHz）周期定时器
      * PSC=239 / ARR=999 → 240MHz / 240 / 1000 = 1kHz，NVIC 已由 CubeMX 配好 */
     HAL_TIM_Base_Start_IT(&htim14);
-    /* 注意：TIM17（电机控制定时器）由 Mo_Contral_DJI.c 的 Mo_Tim_Init_DJI() 启动 */
+    HAL_TIM_Base_Start_IT(&htim17);   // TIM17：电机控制周期回调（见 Mo_Contral_DJI.c 的 Mo_Time_Callback_DJI）
 
     /* 以后加更多定时器在这里接着 start，例如：
      * HAL_TIM_Base_Start_IT(&htim2);
@@ -43,10 +43,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         }
     }
     if (htim->Instance == TIM17) {
-        /* 电机控制周期回调：PID 计算 + CAN 发送。
-         * 当前只配 CAN1（GM6020 CH1 + C610/C620 CH2）。
-         * 其他 CAN 通道的调用方式见 Mo_Contral_DJI.c 的 Mo_Tim_Init_DJI() 注释。 */
-        Mo_PID_Callbakc_DJI(1, 1, 2);
+        /* 电机控制周期回调：PID 计算 + CAN 发送，封装在 Mo_Contral_DJI.c */
+        Mo_Time_Callback_DJI();
     }
 
 }

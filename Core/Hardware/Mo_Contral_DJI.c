@@ -48,25 +48,24 @@ void Mo_Init_DJI(void) {
 
 
 }
-/* 【配置函数】启动电机控制定时器，主函数只调一次。其他 CAN 通道配置见下方注释。 */
-void Mo_Tim_Init_DJI(void) {
-    /* 启动 TIM17：20ms 控制周期（CubeMX 已配好 PSC=239/ARR=9999）。
-     * 每个周期进 My_Tim.c 的 HAL_TIM_PeriodElapsedCallback() 的 TIM17 分支，
-     * 调用 Mo_PID_Callbakc_DJI() 完成 PID 计算 + CAN 发送。 */
-    HAL_TIM_Base_Start_IT(&htim17);
+/* 电机控制周期回调：由 My_Tim.c 的 TIM17 中断调用，做 PID 计算 + CAN 发送。
+ * 所有 CAN 通道的电机统一在这里回调，其他通道配置见下方注释。 */
+void Mo_Time_Callback_DJI(void) {
+    /* TIM17 每 20ms 触发一次（CubeMX 配好 PSC=239/ARR=9999），
+     * 在这里统一调用各 CAN 通道的 Mo_PID_Callbakc_DJI()。 */
 
+    Mo_PID_Callbakc_DJI(1, 1, 2);
     /* ============================================================
      *  其他 CAN 通道的电机配置（多路电机时按需增加）：
      *
-     *  周期回调统一在 My_Tim.c 的 TIM17 分支里，当前默认只配了 CAN1：
-     *      Mo_PID_Callbakc_DJI(1, 1, 2);
+     *  当前默认只配了 CAN1：Mo_PID_Callbakc_DJI(1, 1, 2);
      *
      *  参数含义 Mo_PID_Callbakc_DJI(Can_Ch, GM6020_Ch, C620_And_C610_Ch)：
      *    Can_Ch           CAN 外设 1/2/3（对应 hfdcan1/2/3）
      *    GM6020_Ch        1=发 0x1FE(ID1~4)   2=发 0x2FE(ID5~8)
      *    C620_And_C610_Ch 1=发 0x200(ID1~4)   2=发 0x1FF(ID5~8)
      *
-     *  要加 CAN2 电机：在 My_Tim.c 的 TIM17 回调里加一句
+     *  要加 CAN2 电机：在下面加一句
      *      Mo_PID_Callbakc_DJI(2, 1, 2);
      *  要加 CAN3 电机：再加一句
      *      Mo_PID_Callbakc_DJI(3, 1, 2);

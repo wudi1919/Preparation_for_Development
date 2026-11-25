@@ -9,9 +9,9 @@
 /* 【配置函数】电机初始化 + PID 参数配置，统一放这里，主函数只调一次 */
 void Mo_Init_DJI(void);
 
-/* 【配置函数】启动 TIM17 电机控制定时器（20ms 周期回调做 PID + CAN 发送）。
+/* 电机控制周期回调：由 My_Tim.c 的 TIM17 中断调用，做 PID 计算 + CAN 发送。
  * 其他 CAN 通道的配置方法见函数内注释。 */
-void Mo_Tim_Init_DJI(void);
+void Mo_Time_Callback_DJI(void);
 
 /* 设置某路 CAN 上 C610/C620 的类型（每个通道只会是 C610 或 C620 其中一种） */
 void Mo_Select_DJI(uint8_t Can_Ch, uint8_t type);

@@ -39,8 +39,8 @@ typedef enum {
 // 【配置函数】电机初始化 + PID 参数配置统一入口，主函数只调一次
 void Mo_Init_DJI(void);
 
-// 【配置函数】启动 TIM17 电机控制定时器，主函数只调一次
-void Mo_Tim_Init_DJI(void);
+// 电机控制周期回调：由 TIM17 中断调用，做 PID 计算 + CAN 发送
+void Mo_Time_Callback_DJI(void);
 
 // 指定某路 CAN 上 C610/C620 的类型（每路只会是其中一种）
 void Mo_Select_DJI(uint8_t can_ch, uint8_t type);
@@ -74,13 +74,12 @@ void PID_config(PID_Data *pid, float kp, float ki, float kd, float out_max, floa
 
 ## 4. 例程
 
-### 4.0 必须配置的两个函数
+### 4.0 初始化与周期回调
 
-所有电机的「选型 + PID 参数配置 + 初始目标」都收敛到 `Mo_Init_DJI()` 里，主函数只需调一次：
+`Mo_Init_DJI()`（配置函数）在 main 里调一次，`Mo_Time_Callback_DJI()`（回调函数）由 TIM17 中断自动调用：
 
 ```c
-Mo_Init_DJI();       // 电机 PID 参数配置
-Mo_Tim_Init_DJI();   // 启动 TIM17 电机控制定时器
+Mo_Init_DJI();   // 电机 PID 参数配置（main 里只调这一个）
 ```
 
 `Mo_Init_DJI()` 内部（C610 电调范例，位于 `Mo_Contral_DJI.c`）：
@@ -95,18 +94,18 @@ void Mo_Init_DJI(void) {
 }
 ```
 
-**② `Mo_Tim_Init_DJI()`** —— 启动 TIM17（20ms 控制周期）：
+**② `Mo_Time_Callback_DJI()`** —— 周期回调（TIM17 中断里调用）：
 
 ```c
-void Mo_Tim_Init_DJI(void) {
-    HAL_TIM_Base_Start_IT(&htim17);
+void Mo_Time_Callback_DJI(void) {
+    Mo_PID_Callbakc_DJI(1, 1, 2);
     // 其他 CAN 通道的配置见该函数内注释
 }
 ```
 
 **使用规则**：
 - 换电机 / 改参数 / 改初始目标，都在 `Mo_Init_DJI()` 内部改，**不要往 `main.c` 里堆初始化**。
-- 多路 CAN 电机：在 `Mo_Tim_Init_DJI()` 注释里按说明加 `Mo_PID_Callbakc_DJI` 调用。
+- 多路 CAN 电机：在 `Mo_Time_Callback_DJI()` 注释里按说明加 `Mo_PID_Callbakc_DJI` 调用。
 - GM6020 初始化时：`PID_config` 的 `OutMax` 改 `30000`（电压指令）、数组用 `GM6020_stat`、`Mo_Set_Gravity_FF_DJI` 按机构标定，其余同理。
 - 初始目标这行如需速度环，换成 `Mo_PID_Speed_Control_DJI`；不想要上电就动，删掉这行即可。
 
