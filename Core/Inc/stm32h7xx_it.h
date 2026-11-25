@@ -63,6 +63,7 @@ void FDCAN1_IT1_IRQHandler(void);
 void FDCAN2_IT1_IRQHandler(void);
 void TIM8_TRG_COM_TIM14_IRQHandler(void);
 void UART7_IRQHandler(void);
+void TIM17_IRQHandler(void);
 void FDCAN3_IT0_IRQHandler(void);
 void FDCAN3_IT1_IRQHandler(void);
 /* USER CODE BEGIN EFP */

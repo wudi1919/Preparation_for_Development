@@ -33,6 +33,7 @@
 #include "Power_Contral.h"
 #include "bsp_fdcan.h"
 #include "Buzzer.h"
+#include "Motor_Contral.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -109,6 +110,7 @@ int main(void)
   MX_USART10_UART_Init();
   MX_TIM14_Init();
   MX_TIM12_Init();
+  MX_TIM17_Init();
   /* USER CODE BEGIN 2 */
   bsp_can_init(&hfdcan1);
   bsp_can_init(&hfdcan2);
@@ -119,9 +121,9 @@ int main(void)
   Serial_Init();    // 初始化串口（打印调试用）
   Power_Contral(ALL);
   Buzzer_Init();    // 初始化蜂鸣器（默认静音）
-
+  Mo_Select_DJI(1,C610);
   uint8_t a[8] ={0x0f,0x0B,0x00,0x00,0x00,0x00,0x00,0x00};   // motor1 = 3000
-
+  Mo_Set_current_DJI(C610,5,10,1);
   /* USER CODE END 2 */
 
   /* Infinite loop */

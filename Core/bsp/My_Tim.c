@@ -4,13 +4,14 @@
 
 #include "My_Tim.h"
 #include "BMI088driver.h"
-
+#include "Motor_Contral.h"
 /* ==================== 定时器启动 ==================== */
 void My_Tim_Init(void)
 {
     /* TIM14：1ms（1kHz）周期定时器
      * PSC=239 / ARR=999 → 240MHz / 240 / 1000 = 1kHz，NVIC 已由 CubeMX 配好 */
     HAL_TIM_Base_Start_IT(&htim14);
+    HAL_TIM_Base_Start_IT(&htim17);   // TIM17：电机发送周期回调（Mo_Callback_DJI）
 
     /* 以后加更多定时器在这里接着 start，例如：
      * HAL_TIM_Base_Start_IT(&htim2);
@@ -41,4 +42,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             IMU_Quat_ToEuler(&imu.quat, &imu.angle);
         }
     }
+    if (htim->Instance == TIM17) {
+        Mo_Callback_DJI(1,1,2);
+    }
+
 }
