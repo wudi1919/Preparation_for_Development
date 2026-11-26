@@ -43,6 +43,9 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/Hardware/Buzzer.h
         Core/bsp/bsp_Can_Callback.c
         Core/bsp/bsp_Can_Callback.h
+        Core/Hardware/Mo_Contral_DM.c
+        Core/Hardware/Mo_Contral_DM.h
+        Core/Hardware/HW_Config.c
 )
 
 # Add STM32CubeMX generated sources

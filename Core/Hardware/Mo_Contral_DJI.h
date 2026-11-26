@@ -6,9 +6,6 @@
 #define H7_PREPARED_DEVELOPMENT_MO_CONTRAL_DJI_H
 #include"Overall_Struct.h"
 
-/* 【配置函数】电机初始化 + PID 参数配置，统一放这里，主函数只调一次 */
-void Mo_Init_DJI(void);
-
 /* 电机控制周期回调：由 My_Tim.c 的 TIM17 中断调用，做 PID 计算 + CAN 发送。
  * 其他 CAN 通道的配置方法见函数内注释。 */
 void Mo_Time_Callback_DJI(void);

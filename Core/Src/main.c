@@ -34,6 +34,7 @@
 #include "bsp_fdcan.h"
 #include "Buzzer.h"
 #include "Mo_Contral_DJI.h"
+#include "HW_Config.h"
 #include "PID_Calculator.h"
 #include "bsp_delay.h"
 /* USER CODE END Includes */
