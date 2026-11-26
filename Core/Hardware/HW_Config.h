@@ -34,9 +34,10 @@
 #define C620_IDE_CH2 0X1FF
 #define C620_CALLBACK 0x200
 
-#define j4340_DM_SpeedAndDirection_BAR 0x100
-#define j4340_DM_SpeedOnly_BAR 0x200
-#define j4340_DM_SpeedOnly_BAR 0x200
+#define DM_SpeedAndDirection_BAR 0x100
+#define DM_SpeedOnly_BAR 0x200
+#define DM_StrengthAndDirection_BAR 0x300
+#define DM_Feedback_BAR 0x400
 
 /* 【配置函数】电机初始化 + PID 参数配置，定义在 HW_Config.c，主函数只调一次 */
 void Mo_Init_DJI(void);
