@@ -38,7 +38,7 @@ typedef enum {
     GM6020,
     C610,
     C620
-}Mo_type;
+}Mo_DJI_type;
 
 /* 控制模式：位置保持 / 速度环 / 相对增量角度 */
 typedef enum {
@@ -58,5 +58,11 @@ typedef struct {
     float       GravityPhase;   // 重力前馈相位（度）
 } Mo_PID_Data;
 
-
+typedef enum {
+    S3519,
+    J4340,
+    J4340P,
+    J6216P,
+    J6216,
+}Mo_DM_Type;
 #endif //BLUETOOTH_MACCAR1_0_OVERALL_STRUCT_H

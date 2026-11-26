@@ -124,7 +124,8 @@ int main(void)
   Serial_Init();    // 初始化串口（打印调试用）
   Power_Contral(ALL);
   Buzzer_Init();    // 初始化蜂鸣器（默认静音）
-  Mo_Init_DJI();       // 电机 PID 参数配置（Mo_Contral_DJI.c）
+  Mo_Init_DJI();       // DJI 电机 PID 参数配置（HW_Config.c）
+  Mo_Init_DM();        // 达妙电机使能（HW_Config.c）
   /* USER CODE END 2 */
 
   /* Infinite loop */
