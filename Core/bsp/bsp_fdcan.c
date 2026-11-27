@@ -12,7 +12,7 @@ void bsp_can_init(FDCAN_HandleTypeDef *hfdcan)
 {
 	can_filter_init(hfdcan);
 	HAL_FDCAN_Start(hfdcan);                               //开启FDCAN
-	HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO0_WATERMARK, 0);
+	HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);   /* 每来一帧就中断，回调里把 FIFO 读空 */
 }
 /**
 ************************************************************************
@@ -217,21 +217,33 @@ uint16_t rec_id1;
 void fdcan1_rx_callback(void)
 {
 	
-	if (fdcanx_receive(&hfdcan1, &rec_id1, rx_data1)) Can_Data_Processing_DJI(1);
+	while (HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0) > 0 && fdcanx_receive(&hfdcan1, &rec_id1, rx_data1))
+	{
+		Can_Data_Processing_DJI(1);   /* 大疆电机反馈解析 */
+		Can_Data_Processing_DM(1);    /* 达妙电机反馈解析 */
+	}
 }
 uint8_t rx_data2[64] = {0};
 uint16_t rec_id2;
 void fdcan2_rx_callback(void)
 {
 
-	if (fdcanx_receive(&hfdcan2, &rec_id2, rx_data2)) Can_Data_Processing_DJI(2);
+	while (HAL_FDCAN_GetRxFifoFillLevel(&hfdcan2, FDCAN_RX_FIFO0) > 0 && fdcanx_receive(&hfdcan2, &rec_id2, rx_data2))
+	{
+		Can_Data_Processing_DJI(2);
+		Can_Data_Processing_DM(2);
+	}
 }
 uint8_t rx_data3[64] = {0};
 uint16_t rec_id3;
 void fdcan3_rx_callback(void)
 {
 
-	if (fdcanx_receive(&hfdcan3, &rec_id3, rx_data3)) Can_Data_Processing_DJI(3);
+	while (HAL_FDCAN_GetRxFifoFillLevel(&hfdcan3, FDCAN_RX_FIFO0) > 0 && fdcanx_receive(&hfdcan3, &rec_id3, rx_data3))
+	{
+		Can_Data_Processing_DJI(3);
+		Can_Data_Processing_DM(3);
+	}
 }
 
 

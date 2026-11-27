@@ -1,10 +1,18 @@
-# 大疆电机串级控制（C610 / GM6020）使用例程
+# 电机控制使用说明（大疆 C610 / GM6020 + 达妙 DM）
 
-本工程对 DJI C610（M2006）和 GM6020 提供「速度环 / 绝对位置环 / 相对增量角度环」三种控制，
-采用串级结构：**位置环（增量式 PID）→ 目标转速 → 速度环（位置式 PID）→ 力矩/电压**。
+本工程对两类电机提供独立但一致的接口：
 
-> 核心调用模型：你只在任意函数里**设置目标/参数**；真正的 PID 计算与 CAN 发送由
-> `TIM17` 中断（20ms）里的 `Mo_PID_Callbakc_DJI()` 自动完成，**不要手动发 CAN**。
+- **大疆**（C610 / C620 / GM6020）：MCU 侧串级 PID
+  「位置环（增量式）→ 目标转速 → 速度环（位置式）→ 电流/电压」
+- **达妙**（DM 系列，MIT 协议）：
+  - 定速 → 发 `0x200+ID` 速度帧，**用电机内部速度环**
+  - 定角度 / 增量 → MCU **只做轨迹斜坡**，位置保持由**电机内部 Kp/Kd** 完成
+
+> 核心调用模型：你只在任意函数里**设置目标/参数**；真正的计算与 CAN 发送由
+> `TIM17` 中断（20ms）里的 `Mo_Time_Callback_DJI()` / `Mo_Time_Callback_DM()` 自动完成，
+> **不要手动发 CAN**。
+> 所有配置（选型、PID、量程、目标）都写在 [HW_Config.c](Core/Hardware/HW_Config.c)，
+> 主函数只调 `Mo_Init()` 一次。
 
 ---
 
@@ -79,35 +87,41 @@ void PID_config(PID_Data *pid, float kp, float ki, float kd, float out_max, floa
 `Mo_Init_DJI()`（配置函数）在 main 里调一次，`Mo_Time_Callback_DJI()`（回调函数）由 TIM17 中断自动调用：
 
 ```c
-Mo_Init_DJI();   // 电机 PID 参数配置（main 里只调这一个）
+Mo_Init();       // 电机全部初始化：DJI + 达妙 + 通道使能（main 里只调这一个）
 ```
 
-`Mo_Init_DJI()` 内部（C610 电调范例，位于 `Mo_Contral_DJI.c`）：
+`Mo_Init()` 依次调用 `Mo_Init_DJI()` / `Mo_Init_DM()`，再按电机表自动打开对应 CAN 通道。
+具体选型、PID、量程、初始目标全部写在 [HW_Config.c](Core/Hardware/HW_Config.c)，主函数不参与配置。
+
+**使用规则**：
+- 换电机 / 改参数 / 改初始目标，都在 `HW_Config.c` 的配置表里改，**不要往 `main.c` 里堆初始化**。
+- 多路 CAN 电机：在表里加一行（`can_ch` 填 2 或 3），通道使能会自动打开。
+- GM6020：`OutMax` 改 `30000`（电压指令）、数组用 `GM6020_stat`，其余同理。
+- 上电不想让电机就动：把表中 `mode` 设为 `DJI_CTRL_SPEED`、`target = 0`。
+- 主循环只保留遥测打印与串口调参，不再放控制逻辑。
+
+**① `Mo_Init_DJI()` / `Mo_Init_DM()`** —— 各自遍历配置表（C610 电调范例在 `HW_Config.c`）：
 
 ```c
-void Mo_Init_DJI(void) {
-    Mo_Select_DJI(1, C610);                                            // CAN1 选 C610
-    PID_config(&C610_stat[0][4].Speed, 3.0f, 2.0f, 0.45f, 1000.0f, 3000.0f); // 速度环(内环)
-    Mo_PID_Position_Config_DJI(C610, 5, 2.0f, 0.3f, 0.0f, 120.0f, 1);  // 位置环(外环)
-    Mo_Set_Gravity_FF_DJI(C610, 5, 0.0f, 0.0f, 1);                     // 重力前馈(无负载)
-    Mo_PID_Position_Control_DJI(C610, 5, 90.0f, 1);                    // 初始目标 90°
-}
+// 大疆表：一行一台
+{ .can_ch = 1, .id = 5, .type = C610,
+  .spd_kp = 3.0f, .spd_ki = 2.0f, .spd_kd = 0.45f,
+  .spd_out_max = 1000.0f, .spd_int_max = 3000.0f,
+  .pos_kp = 2.0f, .pos_ki = 0.3f, .pos_kd = 0.0f, .pos_rpm_max = 120.0f,
+  .grav_k = 0.0f, .grav_phase = 0.0f,
+  .mode = DJI_CTRL_POSITION, .target = 90.0f },   // 上电转到 90°
 ```
 
-**② `Mo_Time_Callback_DJI()`** —— 周期回调（TIM17 中断里调用）：
+**② `Mo_Time_Callback_DJI()` / `Mo_Time_Callback_DM()`** —— 周期回调（TIM17 中断里调用）：
 
 ```c
 void Mo_Time_Callback_DJI(void) {
-    Mo_PID_Callbakc_DJI(1, 1, 2);
-    // 其他 CAN 通道的配置见该函数内注释
+    Mo_PID_Callbakc_DJI(1, 1, 2);   // 其他 CAN 通道见函数内注释
 }
+void Mo_Time_Callback_DM(void) { /* 遍历使能通道，定速/定位分别发帧 */ }
 ```
 
-**使用规则**：
-- 换电机 / 改参数 / 改初始目标，都在 `Mo_Init_DJI()` 内部改，**不要往 `main.c` 里堆初始化**。
-- 多路 CAN 电机：在 `Mo_Time_Callback_DJI()` 注释里按说明加 `Mo_PID_Callbakc_DJI` 调用。
-- GM6020 初始化时：`PID_config` 的 `OutMax` 改 `30000`（电压指令）、数组用 `GM6020_stat`、`Mo_Set_Gravity_FF_DJI` 按机构标定，其余同理。
-- 初始目标这行如需速度环，换成 `Mo_PID_Speed_Control_DJI`；不想要上电就动，删掉这行即可。
+> 回调在 `My_Tim.c` 的 TIM17 分支里，默认是注释状态；要跑电机需取消注释。
 
 ---
 
@@ -219,3 +233,82 @@ Mo_Set_Gravity_FF_DJI(GM6020, 1, k, phase_deg, 1);
 - 位置环参数（`Mo_PID_Position_Config_DJI`）和重力前馈（`Mo_Set_Gravity_FF_DJI`）当前为保守占位值，**需按实际负载/机构实测标定**。
 - 不要在主循环和中断里同时调用 `Mo_PID_Callbakc_DJI`，会造成重入和重复发送。
 - 增量角度环天然支持多圈（超 360°），由内部累计角度实现，不会丢圈。
+
+---
+
+## 9. 达妙电机（DM 系列 / MIT 协议）
+
+### 9.1 三种模式
+
+| 模式 | 下发帧 | 谁在闭环 | 适用 |
+|------|--------|----------|------|
+| 定速 | `0x200 + CAN ID`（float v_des） | **电机内部速度环** | 匀速转动、轮子 |
+| 定角度 | `CAN ID`（MIT：p_des/v_des/Kp/Kd/t_ff） | **电机内部位置 PD** | 关节定位 |
+| 增量角度 | 同上 | 同上 | 多圈相对运动 |
+
+MIT 控制律：`τ = Kp·(p_des − p) + Kd·(v_des − v) + t_ff`（无积分，静差靠 `t_ff` 补）。
+
+### 9.2 初始化与配置（全部在 HW_Config.c）
+
+```c
+// 统一入口，main 只调这一句
+Mo_Init();          // = Mo_Init_DJI() + Mo_Init_DM() + 通道使能
+```
+
+达妙电机用表驱动，加电机只是加一行：
+
+```c
+static const DM_Motor_Cfg_t dm_cfg[] = {
+    { .can_ch = 1, .idx = 0,              // CAN1，槽位0 → CAN ID=1，反馈 ID=0x11
+      .type = J4030, .enc = DM_ENC_2E,
+      .p_max = 12.5f, .v_max = 20.0f, .t_max = 28.0f,   // 必须与调试助手一致
+      .v_lim_dps = 240.0f, .mit_kp = 80.0f, .mit_kd = 3.0f,
+      .grav_k = 0.0f, .grav_phase = 0.0f,
+      .mode = DJI_CTRL_POSITION, .target = 90.0f },     // 上电转到 90°
+};
+```
+
+### 9.3 API
+
+```c
+// 【配置函数】
+void DM_Mo_Setting_Init(can_ch, idx, type, enc, p_max, v_max, t_max); // 协议+量程
+void DM_Motion_Config(id, v_lim_dps, kp_mit, kd_mit, can_ch);         // 斜坡速度 + 内部 PD
+void DM_Set_Gravity_FF(id, k, phase_deg, can_ch);                     // 重力前馈
+
+// 运行时（随时可调，幂等）
+void DM_PID_Speed_Control(id, rpm, can_ch);          // 定速
+void DM_PID_Position_Control(id, angle_deg, can_ch); // 绝对角度（0~360°，最短路径）
+void DM_PID_Increment_Control(id, delta_deg, can_ch);// 增量角度（可多圈）
+void DM_Set_CtrlMode(id, mode, can_ch);
+float DM_Pos_MultiTurn_Deg(id, can_ch);              // 读多圈累计角度
+```
+
+### 9.4 轨迹与保持的关系
+
+```c
+// 每 20ms 在 TIM17 里执行：
+step = v_lim_dps * 0.02f;                 // 本周最多走多少度
+ref += clamp(target - ref, ±step);        // 目标做成斜坡
+发 MIT(ref, v_ref, kp_mit, kd_mit, t_ff); // 位置保持交给电机
+```
+
+- MCU 只负责「让目标点平滑移动」，不承担保持。
+- 位置保持由电机内部 kHz 级 PD 完成，**停止抖动远小于外部 50Hz 环**（实测稳态 SD = 0.00°）。
+
+### 9.5 实测（DM-J4030 / CAN1 / 1 Mbps）
+
+| 项 | 结果 |
+|----|------|
+| 定角度到位误差 | **0.1°** |
+| 稳态标准差 | **0.00°** |
+| 超调 | < 1° |
+| 最大转速 | 5.6 rad/s（斜坡设 240°/s） |
+
+### 9.6 达妙注意事项
+
+- `p_max / v_max / t_max` 必须与调试助手「控制幅值」一致，否则反馈反算和 MIT 打包整体成比例偏。
+- MIT 的 `p_des` 只能表示 **±p_max**（12.5 rad ≈ ±716°），**单次增量超过约 716° 会被截断**；多圈要分多次增量。
+- 电机靠「收到帧才回反馈」，未收到反馈时固件每 500ms 自动补发一次使能帧，避免上电丢帧后死锁。
+- 同一台电机不要同时开 MCU 侧 PID 和 `kp_mit/kd_mit`，两套环会互相打架。
+- 达妙出厂是经典 CAN 1 Mbps 标准帧，总线配置用 `bsp_can_switch(&hfdcanX, CAN_CLASS, CAN_BR_1M)`。

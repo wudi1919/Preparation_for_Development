@@ -30,23 +30,18 @@ uint8_t CAN3__C620_and_C610_Type_select[3];
  * 所有 CAN 通道的电机统一在这里回调，其他通道配置见下方注释。 */
 void Mo_Time_Callback_DJI(void) {
     /* TIM17 每 20ms 触发一次（CubeMX 配好 PSC=239/ARR=9999），
-     * 在这里统一调用各 CAN 通道的 Mo_PID_Callbakc_DJI()。 */
-
-    Mo_PID_Callbakc_DJI(1, 1, 2);
+     * 只处理已通过 DJI_Can_Enabel() 开启的通道，
+     * 未开启的通道不做 PID 计算、不发报文。 */
+    for (uint8_t ch = 1; ch <= 3; ch++) {
+        if (!DJI_Can_IsEnabled(ch)) continue;
+        Mo_PID_Callbakc_DJI(ch, 1, 2);
+    }
     /* ============================================================
-     *  其他 CAN 通道的电机配置（多路电机时按需增加）：
-     *
-     *  当前默认只配了 CAN1：Mo_PID_Callbakc_DJI(1, 1, 2);
-     *
-     *  参数含义 Mo_PID_Callbakc_DJI(Can_Ch, GM6020_Ch, C620_And_C610_Ch)：
+     *  Mo_PID_Callbakc_DJI(Can_Ch, GM6020_Ch, C620_And_C610_Ch) 参数含义：
      *    Can_Ch           CAN 外设 1/2/3（对应 hfdcan1/2/3）
      *    GM6020_Ch        1=发 0x1FE(ID1~4)   2=发 0x2FE(ID5~8)
      *    C620_And_C610_Ch 1=发 0x200(ID1~4)   2=发 0x1FF(ID5~8)
-     *
-     *  要加 CAN2 电机：在下面加一句
-     *      Mo_PID_Callbakc_DJI(2, 1, 2);
-     *  要加 CAN3 电机：再加一句
-     *      Mo_PID_Callbakc_DJI(3, 1, 2);
+     *  某一路的电机编号段不同时，需要单独改这里的第 2/3 个参数。
      * ============================================================ */
 }
 

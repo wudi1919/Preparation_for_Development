@@ -69,7 +69,23 @@ static void MPU_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+#include "Mo_Contral_DM.h"
 
+/* 达妙电机 1：CAN1 / ID1 */
+
+/* 演示用：打印达妙电机 1（CAN1 / ID1）的目标角度、实际角度、速度、力矩、错误码 */
+static void DM_Demo_Print(void)
+{
+    DM_Mo_Data *m = &Mo_Setting[0][0];
+    float tgt = m->PID_Data.IncStartDeg + m->PID_Data.PosTargetDeg;
+    if (m->err != 1) DM_Enable_Motor(1, 1);   /* 未使能（ERR!=1）则重发使能帧 */
+    Serial_Printf("DM tgt=%.1f act=%.1f deg vel=%.2f rad/s tor=%.2f Nm err=%u\r\n",
+                  tgt,
+                  m->pos_multiturn_rad * 57.29578f,
+                  m->vel_rads,
+                  m->tor_nm,
+                  (unsigned)m->err);
+}
 /* USER CODE END 0 */
 
 /**
@@ -126,32 +142,31 @@ int main(void)
   Serial_Init();    // 初始化串口（打印调试用）
   Power_Contral(ALL);
   Buzzer_Init();    // 初始化蜂鸣器（默认静音）
-  Mo_Init_DJI();       // DJI 电机 PID 参数配置（HW_Config.c）
-  Mo_Init_DM();        // 达妙电机使能（HW_Config.c）
+  Mo_Init();           // 电机统一初始化：DJI + 达妙 + 通道使能（HW_Config.c）
+  Buzzer_Alarm(100,2);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    Delay_ms(1000);
-    Mo_PID_Increment_Control_DJI(C610,5,720,1);
-
-
-
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
+    /* 串口调参：收到调参帧就更新 DJI 速度环 PID */
     if (rx_flag) {
         rx_flag = 0;
         UART_Data_Read();
     }
-    /* 每 30ms 打一次：Target, Actual, Error, Out —— 够用又不阻塞 */
+
+    /* 遥测：DJI 每 30ms 一行，达妙每 300ms 一行 */
     static uint32_t print_cnt = 0;
     if (++print_cnt % 3 == 0) {
         PID_PFINT(&C610_stat[0][4].Speed);
     }
-    /* 每秒打一次串口接收诊断：空闲事件数 / DMA剩余 / UART状态寄存器 / 错误码 */
+    static uint32_t dm_print_cnt = 0;
+    if (++dm_print_cnt % 30 == 0) {
+        DM_Demo_Print();
+    }
+
+    /* 每秒打一次 CAN 接收诊断 */
     static uint32_t dbg_cnt = 0;
     if (++dbg_cnt % 100 == 0) {
         Serial_Printf("DBG evt=%lu ndtr=%lu cr1=%02lX isr=%08lX\r\n",

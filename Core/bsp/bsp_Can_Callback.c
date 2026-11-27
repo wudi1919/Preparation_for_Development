@@ -5,8 +5,40 @@
 #include "bsp_Can_Callback.h"
 #include "Overall_Struct.h"
 #include "HW_Config.h"
+#include "Mo_Contral_DM.h"
 
 #include <stdint.h>
+
+/* ==================== 通道级使能 ====================
+ * 下标 0~2 对应 CAN1~3。关闭后：反馈解析、PID 计算、报文发送全部跳过。 */
+static volatile uint8_t dji_ch_en[3] = {0, 0, 0};
+static volatile uint8_t dm_ch_en[3]  = {0, 0, 0};
+
+void DJI_Can_Enabel(uint8_t can_ch1, uint8_t can_ch2, uint8_t can_ch3)
+{
+    dji_ch_en[0] = can_ch1 ? 1u : 0u;
+    dji_ch_en[1] = can_ch2 ? 1u : 0u;
+    dji_ch_en[2] = can_ch3 ? 1u : 0u;
+}
+
+void DMI_Can_Enabel(uint8_t can_ch1, uint8_t can_ch2, uint8_t can_ch3)
+{
+    dm_ch_en[0] = can_ch1 ? 1u : 0u;
+    dm_ch_en[1] = can_ch2 ? 1u : 0u;
+    dm_ch_en[2] = can_ch3 ? 1u : 0u;
+}
+
+uint8_t DJI_Can_IsEnabled(uint8_t can_ch)
+{
+    if (can_ch < 1 || can_ch > 3) return 0;
+    return dji_ch_en[can_ch - 1];
+}
+
+uint8_t DM_Can_IsEnabled(uint8_t can_ch)
+{
+    if (can_ch < 1 || can_ch > 3) return 0;
+    return dm_ch_en[can_ch - 1];
+}
 
 /* 转速一阶低通滤波系数：越小越平滑（滞后越大），范围 0~1。
  * CAN 反馈 1kHz：ALPHA=0.15 → 时间常数约 6.7ms，
@@ -83,6 +115,8 @@ extern uint8_t CAN3__C620_and_C610_Type_select[3];
  *         C610 与 C620 共享反馈 ID；由 Type_select[Can_Ch-1] 决定该通道是 C610 还是 C620。
  */
 void Can_Data_Processing_DJI(uint8_t Can_Ch) {
+    if (!DJI_Can_IsEnabled(Can_Ch)) return;   /* 该通道未使能，直接跳过解析 */
+
     uint8_t  *rx_data;
     uint16_t  rec_id;
 
@@ -118,5 +152,73 @@ void Can_Data_Processing_DJI(uint8_t Can_Ch) {
     if (rec_id > GM6020_CALLBACK && rec_id <= GM6020_CALLBACK + 7) {
         id = (uint8_t)(rec_id - GM6020_CALLBACK);  /* 1~7 */
         DJI_Angle_Accumulate(c, id - 1, angle);
+    }
+}
+
+/* ==================== 达妙电机反馈解析 ====================
+ * 反馈帧（ID = MasterID）：
+ *   D0      : ID | ERR<<4
+ *   D1,D2   : pos 16bit（高位在前），映射到 ±p_max
+ *   D3,D4   : vel 12bit，D4 高 4 位为 vel 低 4 位、低 4 位为 tor 高 4 位
+ *   D5      : tor 低 8 位
+ *   D6,D7   : MOS 温度 / 绕组温度（此处不使用）
+ * 位置在 ±p_max 回卷，按半量程 p_max 判定后累加成多圈连续角度。 */
+#define DM_RADS2RPM 9.549296586f   /* 60 / (2π) */
+
+static float DM_U2F(uint16_t x, float x_min, float x_max, uint8_t bits)
+{
+    float span = x_max - x_min;
+    return ((float)x / (float)((1u << bits) - 1u)) * span + x_min;
+}
+
+void Can_Data_Processing_DM(uint8_t Can_Ch) {
+    if (!DM_Can_IsEnabled(Can_Ch)) return;    /* 该通道未使能，直接跳过解析 */
+
+    uint8_t  *rx_data;
+    uint16_t  rec_id;
+
+    switch (Can_Ch) {
+        case 1: rx_data = rx_data1; rec_id = rec_id1; break;
+        case 2: rx_data = rx_data2; rec_id = rec_id2; break;
+        case 3: rx_data = rx_data3; rec_id = rec_id3; break;
+        default: return;
+    }
+
+    uint8_t c = Can_Ch - 1;
+
+    for (uint8_t i = 0; i < 8; i++) {
+        DM_Mo_Data *m = &Mo_Setting[c][i];
+        if (m->proto == NULL || m->master_id != rec_id) continue;
+        if (m->p_max <= 0.0f || m->v_max <= 0.0f || m->t_max <= 0.0f) return;  /* 量程未标定 */
+
+        uint16_t p_int = (uint16_t)((rx_data[1] << 8) | rx_data[2]);
+        uint16_t v_int = (uint16_t)((rx_data[3] << 4) | (rx_data[4] >> 4));
+        uint16_t t_int = (uint16_t)(((rx_data[4] & 0x0F) << 8) | rx_data[5]);
+
+        float pos = DM_U2F(p_int, -m->p_max, m->p_max, 16);
+        float vel = DM_U2F(v_int, -m->v_max, m->v_max, 12);
+        float tor = DM_U2F(t_int, -m->t_max, m->t_max, 12);
+
+        /* 多圈累计：首帧直接给初值，之后按回卷修正累加 */
+        if (!m->fb_valid) {
+            m->pos_last_rad      = pos;
+            m->pos_multiturn_rad = pos;
+            m->fb_valid          = 1;
+        } else {
+            float d = pos - m->pos_last_rad;
+            if (d >  m->p_max) d -= 2.0f * m->p_max;
+            if (d < -m->p_max) d += 2.0f * m->p_max;
+            m->pos_multiturn_rad += d;
+            m->pos_last_rad = pos;
+        }
+
+        m->pos_rad  = pos;
+        m->vel_rads = vel;
+        m->tor_nm   = tor;
+        m->err      = (uint8_t)((rx_data[0] >> m->proto->fb_err_shift) & 0x0F);
+
+        /* 速度环反馈：输出轴 rad/s → RPM */
+        m->PID_Data.Speed.Actual = vel * DM_RADS2RPM;
+        return;
     }
 }

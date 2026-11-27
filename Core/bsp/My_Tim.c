@@ -5,6 +5,7 @@
 #include "My_Tim.h"
 #include "BMI088driver.h"
 #include "Mo_Contral_DJI.h"
+#include "Mo_Contral_DM.h"
 /* ==================== 定时器启动 ==================== */
 void My_Tim_Init(void)
 {
@@ -45,6 +46,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     if (htim->Instance == TIM17) {
         /* 电机控制周期回调：PID 计算 + CAN 发送，封装在 Mo_Contral_DJI.c */
         //Mo_Time_Callback_DJI();
+        /* 达妙电机周期回调：PID 计算 + MIT 打包发送，封装在 Mo_Contral_DM.c */
+        Mo_Time_Callback_DM();
     }
 
 }

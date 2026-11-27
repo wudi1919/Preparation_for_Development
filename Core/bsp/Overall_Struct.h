@@ -29,6 +29,7 @@ typedef struct {
     float Error2;     // e[k-2] 上上次误差
     float Out;        // 累加输出（= 目标转速 RPM）
     float OutMax;     // 输出限幅（±，目标转速上限）
+    float Target;     // 目标参考（达妙轨迹斜坡用：最终目标角）
     float Kp;
     float Ki;
     float Kd;
@@ -64,5 +65,6 @@ typedef enum {
     J4340P,
     J6216P,
     J6216,
+    J4030,
 }Mo_DM_Type;
 #endif //BLUETOOTH_MACCAR1_0_OVERALL_STRUCT_H

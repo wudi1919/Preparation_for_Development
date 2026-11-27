@@ -20,4 +20,5 @@ void Buzzer_Beep(uint16_t ms);
 /* 非阻塞：主循环里周期调用，到时间自动关 */
 void Buzzer_Process(void);
 
+void Buzzer_Alarm(uint8_t ms ,uint8_t Times);
 #endif //H7_PREPARED_DEVELOPMENT_BUZZER_H
