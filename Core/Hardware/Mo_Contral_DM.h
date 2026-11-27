@@ -6,13 +6,25 @@
 #define H7_PREPARED_DEVELOPMENT_MO_CONTRAL_DM_H
 
 #include "stm32h7xx_hal.h"
-
+#include "overall_struct.h"
 /* 达妙电机编码器类型：1E = 单编码器，2E = 双编码器。
  * 帧结构两类完全相同，差异只在于：位置能否跨圈、是否支持力位混控。 */
 typedef enum {
     DM_ENC_1E = 1,   /* 单编码器：位置只有单圈，不能跨圈累计 */
     DM_ENC_2E = 2,   /* 双编码器：电机侧 + 输出轴，输出轴绝对位置可跨圈 */
 } DM_Encoder_Type;
+
+typedef enum {
+    MTI,
+    Speed,
+} DM_Work_Mode;
+
+typedef struct  {
+    Mo_PID_Data PID_Data;
+    DM_Work_Mode Work_mode;
+    Mo_DM_Type Mo_Type;
+} DM_Mo_Data;
+
 
 /* 一套完整的达妙 CAN 协议描述。
  * 控制帧 ID = 基地址 + 电机 CAN ID；反馈帧 ID = MasterID；字节序小端。 */
@@ -74,4 +86,5 @@ void DM_Motor_Enable(uint8_t can_ch, uint16_t can_id, DM_Encoder_Type enc);
 /* 使能电机（兼容旧调用，默认按 2E 取协议；1E/2E 的使能命令相同） */
 void DM_Enable_Motor(uint8_t can_ch, uint16_t can_id);
 
+DM_Mo_Data Mo_Setting[3][8];
 #endif //H7_PREPARED_DEVELOPMENT_MO_CONTRAL_DM_H

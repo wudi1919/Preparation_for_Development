@@ -115,9 +115,11 @@ int main(void)
   MX_TIM12_Init();
   MX_TIM17_Init();
   /* USER CODE BEGIN 2 */
-  bsp_can_init(&hfdcan1);
-  bsp_can_init(&hfdcan2);
-  bsp_can_init(&hfdcan3);
+  /* 总线模式与波特率统一在这里声明，不再依赖 fdcan.c 里 CubeMX 生成的参数。
+   * 达妙电机出厂是经典 CAN 1Mbps；要跑 FD 就改成 CAN_FD_BRS + CAN_BR_5M（电机也要同步改）。 */
+  bsp_can_switch(&hfdcan1, CAN_CLASS, CAN_BR_1M);   // CAN1：DJI + 达妙
+  bsp_can_switch(&hfdcan2, CAN_CLASS, CAN_BR_1M);   // CAN2：达妙
+  bsp_can_switch(&hfdcan3, CAN_CLASS, CAN_BR_1M);   // CAN3：达妙
   BMI088_init();    // 初始化 BMI088 传感器
   IMU_Init();       // IMU 初始化（零偏+温度标定 + 四元数初始化）
   My_Tim_Init();    // 启动 1ms 定时器

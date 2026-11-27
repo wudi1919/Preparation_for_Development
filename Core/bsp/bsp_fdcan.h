@@ -5,7 +5,25 @@
 
 #define hcan_t FDCAN_HandleTypeDef
 
+/* CAN 工作模式 */
+#define CAN_CLASS   0
+#define CAN_FD_BRS  1
+
+/* 波特率枚举（经典 CAN：仲裁域速率；CAN FD：数据域速率） */
+#define CAN_BR_125K 0
+#define CAN_BR_200K 1
+#define CAN_BR_250K 2
+#define CAN_BR_500K 3
+#define CAN_BR_1M   4
+#define CAN_BR_2M   5
+#define CAN_BR_2M5  6
+#define CAN_BR_3M2  7
+#define CAN_BR_4M   8
+#define CAN_BR_5M   9
+
 void bsp_can_init(FDCAN_HandleTypeDef *hfdcan);
+void bsp_fdcan_set_baud(hcan_t *hfdcan, uint8_t mode, uint8_t baud);
+void bsp_can_switch(hcan_t *hfdcan, uint8_t mode, uint8_t baud);
 void can_filter_init(FDCAN_HandleTypeDef *hfdcan);
 uint8_t fdcanx_send_data(hcan_t *hfdcan, uint16_t id, uint8_t *data, uint32_t len);
 uint8_t fdcanx_receive(hcan_t *hfdcan, uint16_t *rec_id, uint8_t *buf);
