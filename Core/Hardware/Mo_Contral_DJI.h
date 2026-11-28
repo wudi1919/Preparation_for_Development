@@ -31,6 +31,27 @@ void Mo_PID_Position_Control_DJI(uint8_t type, uint8_t id, float angle_deg, uint
 /* 相对增量角度控制：以当前位置为起点转 delta_deg（度，可超 360），进入增量模式 */
 void Mo_PID_Increment_Control_DJI(uint8_t type, uint8_t id, float delta_deg, uint8_t can_Ch);
 
+/* ---------------- 精确增量运动（推荐用法） ----------------
+ * 底层统一做梯形规划、到位锁定、堵转保护，适合“转 N 圈停住并保持”的场合。
+ * 支持全部 DJI 电机类型（GM6020 / C610 / C620），语义相同。
+ * 状态：0=空闲，1=运动中，2=已到位保持，3=堵转已卸力 */
+typedef enum {
+    MO_MOVE_IDLE = 0,
+    MO_MOVE_RUN,
+    MO_MOVE_HOLD,
+    MO_MOVE_STALL
+} Mo_MoveState_t;
+
+/* 绝对多圈目标：target_deg 以“上电多圈计数”为基准，可超过 360°
+ * 例如 target=24480 表示正转 68 圈，与当前误差无关，天然不累积 */
+void Mo_Move_Absolute(uint8_t type, uint8_t id, float target_deg, float v_limit_RPM, uint8_t can_Ch);
+
+/* 相对运动：内部换算成“当前多圈角 + delta”，再走绝对目标 */
+void Mo_Move_Relative(uint8_t type, uint8_t id, float delta_deg, float v_limit_RPM, uint8_t can_Ch);
+
+/* 查询运动状态；remain_deg 返回剩余角度（可为 NULL） */
+uint8_t Mo_Move_Status(uint8_t type, uint8_t id, float *remain_deg, uint8_t can_Ch);
+
 /* 配置位置环（增量式 PID），OutMax 为目标转速上限（RPM） */
 void Mo_PID_Position_Config_DJI(uint8_t type, uint8_t id, float kp, float ki, float kd, float out_max, uint8_t can_Ch);
 

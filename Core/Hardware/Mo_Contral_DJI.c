@@ -96,7 +96,76 @@ void Mo_Callback_DJI(uint8_t Can_Ch,uint8_t GM6020_Ch,uint8_t C620_And_C610_Ch) 
     }
 }
 
+/* ---------------- 精确增量运动：底层统一实现 ---------------- */
+/* 上层只要给「绝对多圈目标 + 限速」，规划、到位锁定、堵转保护都在这里做 */
+#define MO_MOVE_ARRIVE_DEG   10.0f     /* 到位死区（电机侧角度） */
+#define MO_MOVE_DECEL      2000.0f     /* 规划减速度 deg/s^2，决定刹车距离 */
+#define MO_MOVE_VMIN         15.0f     /* 末段最低转速，防止爬不动 */
+#define MO_MOVE_STALL_MS     500U      /* 饱和不动持续多久判定堵转 */
+#define MO_MOVE_STALL_DEG    20.0f     /* 判定“没在前进”的角度门限 */
+
+typedef struct {
+    float    target_deg;    /* 绝对多圈目标 */
+    float    v_limit;       /* 本段限速 RPM */
+    float    last_remain;   /* 上一周期剩余角度 */
+    uint16_t stall_ms;      /* 饱和不动累计时间 */
+    uint8_t  state;         /* Mo_MoveState_t */
+} Mo_Move_t;
+
+static Mo_Move_t mo_move[3][8];
+
+/* 每个控制周期调用一次：规划速度上限 → 写进位置环 Output 限幅 */
+static void Mo_Move_Tick(Mo_PID_Data *stat, uint8_t id, uint8_t can_Ch)
+{
+    Mo_Move_t *m = &mo_move[can_Ch - 1][id - 1];
+    if (m->state != MO_MOVE_RUN) return;
+
+    float mt     = DJI_Angle_MultiTurn_Deg(can_Ch, id);
+    float remain = m->target_deg - mt;
+
+    /* 到位：锁在“当前实际角度”，不往指令终点再顶，避免堵转 */
+    if (fabsf(remain) < MO_MOVE_ARRIVE_DEG) {
+        float a = fmodf(mt, 360.0f);
+        if (a < 0.0f) a += 360.0f;
+        stat->PosTargetDeg = a;
+        stat->Pos.OutMax   = m->v_limit;   /* 恢复保持时的速度上限 */
+        stat->CtrlMode = DJI_CTRL_POSITION;
+        m->state = MO_MOVE_HOLD;
+        return;
+    }
+
+    /* 梯形规划：v = min(限速, sqrt(2·a·剩余))，末段自动减速 */
+    float v = sqrtf(2.0f * MO_MOVE_DECEL * fabsf(remain));
+    if (v > m->v_limit) v = m->v_limit;
+    if (v < MO_MOVE_VMIN) v = MO_MOVE_VMIN;
+    stat->Pos.OutMax = v;
+
+    /* 增量目标改成“绝对目标”：IncStart = target, PosTarget = 0 */
+    stat->IncStartDeg = m->target_deg;
+    stat->PosTargetDeg = 0.0f;
+
+    /* 堵转检测：输出饱和且剩余角基本不再减小 */
+    if (fabsf(stat->Speed.Out) >= stat->Speed.OutMax - 1.0f) {
+        if (fabsf(remain) > fabsf(m->last_remain) - MO_MOVE_STALL_DEG) {
+            m->stall_ms += (uint16_t)(MOTOR_CTRL_DT * 1000.0f);
+            if (m->stall_ms >= MO_MOVE_STALL_MS) {
+                stat->IncStartDeg = mt;     /* 就地卸力 */
+                stat->PosTargetDeg = 0.0f;
+                m->state = MO_MOVE_STALL;
+            }
+        } else {
+            m->stall_ms = 0;
+        }
+    } else {
+        m->stall_ms = 0;
+    }
+    m->last_remain = remain;
+}
+
 static void Mo_PID_Speed_Calc_DJI(Mo_PID_Data *stat, uint8_t type, uint8_t id, uint8_t can_Ch) {
+    /* 0. 精确增量运动状态机：规划速度、到位锁定、堵转保护 */
+    Mo_Move_Tick(stat, id, can_Ch);
+
     /* 1. 测速：C610/GM6020 用多圈角度差分 → RPM，叠一阶 LPF。
      *    角度差分精度 ±0.37 RPM，远优于电调直报速度。C620 直报速度已在 CAN 回调低通。 */
     if (type == C610 || type == GM6020) {
@@ -222,6 +291,39 @@ void Mo_PID_Increment_Control_DJI(uint8_t type, uint8_t id, float delta_deg, uin
     stat->IncStartDeg = DJI_Angle_MultiTurn_Deg(can_Ch, id);
     stat->PosTargetDeg = delta_deg;
     stat->CtrlMode = DJI_CTRL_INCREMENT;
+}
+
+/* ---------------- 精确增量运动 API ---------------- */
+
+void Mo_Move_Absolute(uint8_t type, uint8_t id, float target_deg, float v_limit_RPM, uint8_t can_Ch) {
+    Mo_PID_Data *stat = Mo_Get_Stat(type, id, can_Ch);
+    if (stat == NULL) return;
+
+    Mo_Move_t *m = &mo_move[can_Ch - 1][id - 1];
+    m->target_deg  = target_deg;
+    m->v_limit     = (v_limit_RPM <= 0.0f) ? stat->Pos.OutMax : v_limit_RPM;
+    m->last_remain = target_deg - DJI_Angle_MultiTurn_Deg(can_Ch, id);
+    m->stall_ms    = 0;
+    m->state       = MO_MOVE_RUN;
+
+    /* 先切到增量模式，目标由 Mo_Move_Tick 每周期刷新 */
+    stat->IncStartDeg  = target_deg;
+    stat->PosTargetDeg = 0.0f;
+    stat->CtrlMode     = DJI_CTRL_INCREMENT;
+}
+
+void Mo_Move_Relative(uint8_t type, uint8_t id, float delta_deg, float v_limit_RPM, uint8_t can_Ch) {
+    float cur = DJI_Angle_MultiTurn_Deg(can_Ch, id);
+    Mo_Move_Absolute(type, id, cur + delta_deg, v_limit_RPM, can_Ch);
+}
+
+uint8_t Mo_Move_Status(uint8_t type, uint8_t id, float *remain_deg, uint8_t can_Ch) {
+    if (can_Ch == 0 || can_Ch > 3 || id == 0 || id > 8) return MO_MOVE_IDLE;
+    Mo_Move_t *m = &mo_move[can_Ch - 1][id - 1];
+    if (remain_deg != NULL) {
+        *remain_deg = m->target_deg - DJI_Angle_MultiTurn_Deg(can_Ch, id);
+    }
+    return m->state;
 }
 
 /* 配置位置环（增量式 PID），OutMax 为目标转速上限（RPM） */

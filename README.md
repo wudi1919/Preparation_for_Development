@@ -62,6 +62,14 @@ void Mo_PID_Position_Control_DJI(uint8_t type, uint8_t id, float angle_deg, uint
 // 相对增量角度（度，可超 360），以当前位置为起点，进入增量模式
 void Mo_PID_Increment_Control_DJI(uint8_t type, uint8_t id, float delta_deg, uint8_t can_ch);
 
+/* ---- 精确增量运动（推荐）：梯形规划 + 到位锁定 + 堵转保护 ---- */
+// 绝对多圈目标（以多圈计数为基准，可超 360°，与当前误差无关，天然不累积）
+void Mo_Move_Absolute(uint8_t type, uint8_t id, float target_deg, float v_limit_RPM, uint8_t can_ch);
+// 相对运动：内部换算成「当前多圈角 + delta」
+void Mo_Move_Relative(uint8_t type, uint8_t id, float delta_deg, float v_limit_RPM, uint8_t can_ch);
+// 查询状态：0=空闲 1=运动中 2=到位保持 3=堵转卸力；remain 返回剩余角度（可传 NULL）
+uint8_t Mo_Move_Status(uint8_t type, uint8_t id, float *remain_deg, uint8_t can_ch);
+
 // 配置位置环（增量式 PID），out_max 为目标转速上限（RPM）
 void Mo_PID_Position_Config_DJI(uint8_t type, uint8_t id, float kp, float ki, float kd, float out_max, uint8_t can_ch);
 
@@ -141,12 +149,43 @@ Mo_PID_Speed_Control_DJI(C610, 5, 120, 1);   // CAN1, ID5, 120 RPM
 Mo_PID_Position_Control_DJI(C610, 5, 90.0f, 1);   // 转到 90°
 ```
 
-### 4.3 C610 相对增量角度（可超 360°，多圈）
+### 4.3 C610/C620 相对增量角度（可超 360°，多圈）
 
 ```c
 // 从当前位置再转 2 圈（720°），多圈累计不丢圈
 Mo_PID_Increment_Control_DJI(C610, 5, 720.0f, 1);
 ```
+
+#### 需要精确圈数 + 停住保持时，用 `Mo_Move_*`
+
+`Mo_PID_Increment_Control_DJI` 只负责“以当前实际位置为起点发一段增量”，
+到位判定和保持要上层自己做，多次往返会因到位残差逐次累积。底层另有
+一套完整的运动接口，适合“转 N 圈 → 精确停住 → 保持”的场合：
+
+```c
+// 转到绝对多圈角 24480°（68 圈），限速 240 RPM
+Mo_Move_Absolute(C620, 5, 24480.0f, 240.0f, 1);
+
+// 或相对当前再转 3.4 圈（12240°）
+Mo_Move_Relative(C620, 5, 12240.0f, 240.0f, 1);
+
+// 查状态：0 空闲 / 1 运动中 / 2 到位保持 / 3 堵转卸力
+float remain;
+if (Mo_Move_Status(C620, 5, &remain, 1) == 2) { /* 已到位并锁定 */ }
+```
+
+底层每个控制周期自动完成四件事：
+
+| 环节 | 行为 |
+|---|---|
+| 梯形规划 | 速度上限 = min(设定限速, √(2·a·剩余角))，末段自动减速，不会冲过头 |
+| 到位锁定 | 剩余 < 10° 时把目标改成**当前实际角度**并切位置环，不往指令终点顶，因此不会堵转 |
+| 堵转保护 | 输出饱和且剩余角 500 ms 内减少不到 20° → 就地卸力，状态置 3 |
+| 误差不累积 | 目标始终是**绝对多圈角**，不用“当前 + 增量”反复重算 |
+
+所有 DJI 电机（GM6020 / C610 / C620）语义一致，只换第一个参数即可。
+应用层就退化成“给目标 + 查状态”，`Lift_Task.c` 之前的原点记忆、到位判定、
+保持锁定都可以删掉。
 
 ### 4.4 GM6020 位置环
 

@@ -143,6 +143,8 @@ void Can_Data_Processing_DJI(uint8_t Can_Ch) {
             return;
         }
         if (CAN3__C620_and_C610_Type_select[c] == C620) {
+            /* C620 用回报转速直接做速度环反馈；同时累积多圈角度，供位置/增量环使用 */
+            DJI_Angle_Accumulate(c, id - 1, angle);
             C620_stat[c][id - 1].Speed.Actual += SPEED_LPF_ALPHA * (speed - C620_stat[c][id - 1].Speed.Actual);
             return;
         }
