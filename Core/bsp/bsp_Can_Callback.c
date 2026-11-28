@@ -5,6 +5,7 @@
 #include "bsp_Can_Callback.h"
 #include "Overall_Struct.h"
 #include "HW_Config.h"
+#include "Mo_Contral_DJI.h"
 #include "Mo_Contral_DM.h"
 
 #include <stdint.h>

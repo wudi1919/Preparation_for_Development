@@ -6,6 +6,22 @@
 #define H7_PREPARED_DEVELOPMENT_MO_CONTRAL_DJI_H
 #include"Overall_Struct.h"
 
+/* DJI 电机 CAN 帧 ID
+ * 这里都使用电流控制，如果需要使用电压控制自行更改标识符
+ * CALLBACK 是基地址，后续按电机 id 进行偏移
+ * 命令帧按 1~4 / 5~8 分两帧发送，C610 与 C620 的帧 ID 相同 */
+#define GM6020_IDE_CH1  0X1FE
+#define GM6020_IDE_CH2  0X2FE
+#define GM6020_CALLBACK 0x204
+
+#define C610_IDE_CH1    0x200
+#define C610_IDE_CH2    0x1FF
+#define C610_CALLBACK   0x200
+
+#define C620_IDE_CH1    0X200
+#define C620_IDE_CH2    0X1FF
+#define C620_CALLBACK   0x200
+
 /* 电机控制周期回调：由 My_Tim.c 的 TIM17 中断调用，做 PID 计算 + CAN 发送。
  * 其他 CAN 通道的配置方法见函数内注释。 */
 void Mo_Time_Callback_DJI(void);
