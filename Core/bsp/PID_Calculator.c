@@ -45,20 +45,41 @@ void PID_Calculator(PID_Data * p) {
         }
     }
 
-    /* 积分硬限幅（双保险） */
-    if (p->ErrorInt >  p->IntMax) p->ErrorInt =  p->IntMax;
-    if (p->ErrorInt < -p->IntMax) p->ErrorInt = -p->IntMax;
+    /* 积分限幅：限的是“积分对输出的贡献” Ki·ErrorInt ≤ IntMax。
+     * 这样 IntMax 的含义与 Ki 解耦，调 Ki 不会顺带改变抗饱和能力。 */
+    if (p->Ki > 1e-6f) {
+        float i_raw_max = p->IntMax / p->Ki;
+        if (p->ErrorInt >  i_raw_max) p->ErrorInt =  i_raw_max;
+        if (p->ErrorInt < -i_raw_max) p->ErrorInt = -i_raw_max;
+    } else {
+        p->ErrorInt = 0.0f;   /* Ki = 0 时积分无意义，直接清零 */
+    }
 
     /* ---------- PID 计算 ----------
      * 注意：不要加固定摩擦前馈——摩擦随温度变化 60~140（实测），
      * 固定前馈会在热机时过补偿，反而注入振荡。交给积分自适应即可。 */
-    p->Out = p->Kp * err_raw
-           + p->Ki * p->ErrorInt
-           + p->Kd * d_err / PID_SAMPLE_TIME_S;
+    float out_raw = p->Kp * err_raw
+                  + p->Ki * p->ErrorInt
+                  + p->Kd * d_err / PID_SAMPLE_TIME_S;
 
-    /* 输出限幅（±OutMax） */
+    /* 输出限幅（±OutMax），同时给出饱和标志供堵转检测使用 */
+    p->Saturated = (out_raw >= p->OutMax || out_raw <= -p->OutMax) ? 1U : 0U;
+    p->Out = out_raw;
     if (p->Out >  p->OutMax) p->Out =  p->OutMax;
     if (p->Out < -p->OutMax) p->Out = -p->OutMax;
+}
+
+/**
+ * @brief  清空 PID 运行状态，保留参数
+ * @note   切换控制模式（位置/速度/增量）时调用，避免旧积分与误差历史污染新模式的起始输出
+ */
+void PID_Reset(PID_Data * p) {
+    if (p == NULL) return;
+    p->Error0    = 0.0f;
+    p->Error1    = 0.0f;
+    p->ErrorInt  = 0.0f;
+    p->Out       = 0.0f;
+    p->Saturated = 0U;
 }
 
 /**

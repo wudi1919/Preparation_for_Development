@@ -144,8 +144,8 @@ static void Mo_Move_Tick(Mo_PID_Data *stat, uint8_t id, uint8_t can_Ch)
     stat->IncStartDeg = m->target_deg;
     stat->PosTargetDeg = 0.0f;
 
-    /* 堵转检测：输出饱和且剩余角基本不再减小 */
-    if (fabsf(stat->Speed.Out) >= stat->Speed.OutMax - 1.0f) {
+    /* 堵转检测：速度环输出饱和且剩余角基本不再减小 */
+    if (stat->Speed.Saturated) {
         if (fabsf(remain) > fabsf(m->last_remain) - MO_MOVE_STALL_DEG) {
             m->stall_ms += (uint16_t)(MOTOR_CTRL_DT * 1000.0f);
             if (m->stall_ms >= MO_MOVE_STALL_MS) {
@@ -279,6 +279,10 @@ void Mo_PID_Position_Control_DJI(uint8_t type, uint8_t id, float angle_deg, uint
     /* 归一到 0~360 */
     float t = fmodf(angle_deg, 360.0f);
     if (t < 0.0f) t += 360.0f;
+    /* 从其它模式切入时清积分，避免旧积分把起始输出顶偏 */
+    if (stat->CtrlMode != DJI_CTRL_POSITION) {
+        PID_Reset(&stat->Speed);
+    }
     stat->PosTargetDeg = t;
     stat->CtrlMode = DJI_CTRL_POSITION;
 }
@@ -288,6 +292,9 @@ void Mo_PID_Increment_Control_DJI(uint8_t type, uint8_t id, float delta_deg, uin
     Mo_PID_Data *stat = Mo_Get_Stat(type, id, can_Ch);
     if (stat == NULL) return;
     /* 记录起点累计角度，目标 = 起点 + 增量（增量可任意大小，含多圈） */
+    if (stat->CtrlMode != DJI_CTRL_INCREMENT) {
+        PID_Reset(&stat->Speed);   /* 切模式清积分，防止旧积分污染起始输出 */
+    }
     stat->IncStartDeg = DJI_Angle_MultiTurn_Deg(can_Ch, id);
     stat->PosTargetDeg = delta_deg;
     stat->CtrlMode = DJI_CTRL_INCREMENT;

@@ -18,6 +18,7 @@ typedef struct {
     float Ki;
     float Kd;
     float Out;        // PID 输出（±OutMax）
+    uint8_t Saturated; // 输出饱和标志：1 = 本次输出被限幅截断（供堵转检测用）
 } PID_Data;
 
 /* 增量式 PID（位置环用）：输出为“增量累加”，天然抗积分饱和、目标跳变不突变。
