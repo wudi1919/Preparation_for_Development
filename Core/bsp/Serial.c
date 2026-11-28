@@ -153,7 +153,8 @@ void UART_Data_Read(void)//这里直接数据处理和帧头检测
             float kd = kd100 / 100.0f;
             /* 增益合法性检查：防止噪声恰好拼出帧头后写入离谱参数 */
             if (kp >= 0.0f && kp <= 50.0f && ki >= 0.0f && ki <= 50.0f && kd >= 0.0f && kd <= 50.0f) {
-                PID_config(&C610_stat[0][4].Speed, kp, ki, kd, 1000.0f, 3000.0f);
+                /* CAN1 / ID5 现为 C620 电调，调参必须写到 C620 的状态表 */
+                PID_config(&C620_stat[0][4].Speed, kp, ki, kd, 1000.0f, 3000.0f);
                 Serial_Printf("OK Kp=%.2f Ki=%.2f Kd=%.2f\r\n", kp, ki, kd);
             }
             break;

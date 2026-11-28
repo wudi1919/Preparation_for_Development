@@ -6,7 +6,7 @@
 #include "Overall_Struct.h"
 #include <math.h>
 
-PID_Data Mo_PID[Mo_number + 1] = {0};
+
 
 /* ================================================================
  *  控制器周期：TIM17 在 APB2(120MHz) 上，PSC=239, ARR=9999
