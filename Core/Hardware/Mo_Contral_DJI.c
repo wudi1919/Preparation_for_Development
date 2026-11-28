@@ -300,6 +300,14 @@ void Mo_Move_Absolute(uint8_t type, uint8_t id, float target_deg, float v_limit_
     if (stat == NULL) return;
 
     Mo_Move_t *m = &mo_move[can_Ch - 1][id - 1];
+
+    /* 通道未使能（DJI_Can_Enabel 没开）：不进入运动状态，
+     * 否则永远等不到周期回调，状态会一直卡在“运动中” */
+    if (!DJI_Can_IsEnabled(can_Ch)) {
+        m->state = MO_MOVE_IDLE;
+        return;
+    }
+
     m->target_deg  = target_deg;
     m->v_limit     = (v_limit_RPM <= 0.0f) ? stat->Pos.OutMax : v_limit_RPM;
     m->last_remain = target_deg - DJI_Angle_MultiTurn_Deg(can_Ch, id);
@@ -320,6 +328,11 @@ void Mo_Move_Relative(uint8_t type, uint8_t id, float delta_deg, float v_limit_R
 uint8_t Mo_Move_Status(uint8_t type, uint8_t id, float *remain_deg, uint8_t can_Ch) {
     if (can_Ch == 0 || can_Ch > 3 || id == 0 || id > 8) return MO_MOVE_IDLE;
     Mo_Move_t *m = &mo_move[can_Ch - 1][id - 1];
+    if (!DJI_Can_IsEnabled(can_Ch)) {          /* 通道被关掉：状态复位，避免下次开启时残留旧运动 */
+        m->state = MO_MOVE_IDLE;
+        if (remain_deg != NULL) *remain_deg = 0.0f;
+        return MO_MOVE_IDLE;
+    }
     if (remain_deg != NULL) {
         *remain_deg = m->target_deg - DJI_Angle_MultiTurn_Deg(can_Ch, id);
     }
