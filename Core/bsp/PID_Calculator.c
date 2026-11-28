@@ -15,9 +15,9 @@
  * ================================================================ */
 #define PID_SAMPLE_TIME_S 0.02f
 
-/* 积分分离：|Error| < 200 RPM 才积分。
- * 实测 ±30 带宽 + 静摩擦会形成极限环：进带猛充→过冲出带→冻结→拉回，
- * 稳态 ±15 RPM 振荡对所有 Kp/Kd 组合免疫。放宽到 200 让积分全程参与，
+/* 积分分离默认带宽（RPM）。实际值优先取 PID_Data.IActivateBand，
+ * 为 0 时回退到本默认值；建议配置为该环最大目标值的 1.2 倍。
+ * 带宽若小于速度目标，启动瞬间积分会被冻结，重载下无法起转。
  * 抗饱和由 Out 饱和判断 + IntMax 双限幅兜底。 */
 #define PID_I_ACTIVATE_BAND  200.0f  // RPM
 
@@ -36,8 +36,10 @@ void PID_Calculator(PID_Data * p) {
     p->Error1     = p->Error0;
     p->Error0     = err_raw;
 
-    /* ---------- 积分分离：只在误差小时才积分，防大误差超调 ---------- */
-    if (fabsf(err_raw) < PID_I_ACTIVATE_BAND) {
+    /* ---------- 积分分离：只在误差小时才积分，防大误差超调 ----------
+     * 带宽优先取结构体字段（每台电机可独立配置），为 0 时回退到默认值。 */
+    float i_band = (p->IActivateBand > 0.0f) ? p->IActivateBand : PID_I_ACTIVATE_BAND;
+    if (fabsf(err_raw) < i_band) {
         int sat_hi = (p->Out >=  p->OutMax) && (err_raw > 0);
         int sat_lo = (p->Out <= -p->OutMax) && (err_raw < 0);
         if (!sat_hi && !sat_lo) {
@@ -80,6 +82,16 @@ void PID_Reset(PID_Data * p) {
     p->ErrorInt  = 0.0f;
     p->Out       = 0.0f;
     p->Saturated = 0U;
+}
+
+/**
+ * @brief  设置积分分离带宽（RPM / 与目标同单位）
+ * @note   0 表示使用默认值 PID_I_ACTIVATE_BAND；一般取该环最大目标值的 1.2 倍，
+ *         否则速度目标高于带宽时启动瞬间积分冻结，重载下无法起转。
+ */
+void PID_Set_IBand(PID_Data * p, float band) {
+    if (p == NULL) return;
+    p->IActivateBand = (band > 0.0f) ? band : 0.0f;
 }
 
 /**
